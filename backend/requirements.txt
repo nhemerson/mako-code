@@ -3,4 +3,6 @@ uvicorn>=0.15.0
 pydantic>=1.8.2
 python-multipart>=0.0.5
 RestrictedPython>=6.0
-polars>=1.21.0pyarrow>=19.0.0
+polars>=1.21.0
+pyarrow>=19.0.0
+ruff>=0.9.4

@@ -1,6 +1,86 @@
 import polars as pl
-import streamlit as st
 import json
+import os
+import io
+from pathlib import Path
+from fastapi import UploadFile
+from typing import Union
+
+# Get the absolute path to the backend directory
+BACKEND_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATASET_DIR = BACKEND_DIR / "data" / "datasets"
+
+def ensure_dataset_dir():
+    """Ensure the datasets directory exists"""
+    try:
+        DATASET_DIR.mkdir(parents=True, exist_ok=True)
+        print(f"Dataset directory ensured at: {DATASET_DIR}")
+    except Exception as e:
+        print(f"Error creating dataset directory: {e}")
+
+async def process_uploaded_file(file: UploadFile, new_filename: str) -> dict:
+    """
+    Process an uploaded file (JSON, CSV, or Parquet) and save it as a Parquet file using Polars.
+    
+    Args:
+        file: The uploaded file
+        new_filename: The desired name for the saved file (without extension)
+    
+    Returns:
+        dict: Status of the operation
+    """
+    ensure_dataset_dir()
+    
+    # Read the file content
+    content = await file.read()
+    file_extension = file.filename.split('.')[-1].lower()
+    
+    try:
+        if file_extension == 'json':
+            # Handle JSON file
+            if isinstance(content, bytes):
+                content = content.decode('utf-8')
+            data = json.loads(content)
+            # Convert JSON to Polars DataFrame
+            if isinstance(data, list):
+                df = pl.DataFrame(data)
+            else:
+                # If it's a dict, we need to handle it differently
+                df = pl.DataFrame([data])
+        
+        elif file_extension == 'csv':
+            # Handle CSV file
+            df = pl.read_csv(io.BytesIO(content))
+        
+        elif file_extension == 'parquet':
+            # Handle Parquet file
+            df = pl.read_parquet(io.BytesIO(content))
+        
+        else:
+            return {
+                "success": False,
+                "error": f"Unsupported file type: {file_extension}"
+            }
+        
+        # Save as parquet
+        output_path = DATASET_DIR / f"{new_filename}.parquet"
+        print(f"Saving file to: {output_path}")
+        df.write_parquet(output_path)
+        print(f"File saved successfully. File exists: {output_path.exists()}")
+        
+        return {
+            "success": True,
+            "message": "File processed and saved successfully",
+            "filename": f"{new_filename}.parquet",
+            "path": str(output_path)
+        }
+    
+    except Exception as e:
+        print(f"Error processing file: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 # Save Report Name Locally
         
@@ -56,7 +136,6 @@ def create_delta_table(dataframe: pl.DataFrame, delta_table_name: str, partition
             df_polars_collect_none = df_polars_collect
             print(f"Dataframe for {partition_range} created for {delta_table_name}")
         except Exception as e: 
-            st.write("Something seems to be wrong:" + str(e))
             print(f"Couldn't make delta table with {partition_by}")
             return pl.DataFrame()
     elif partition_range == "Day":
@@ -64,7 +143,6 @@ def create_delta_table(dataframe: pl.DataFrame, delta_table_name: str, partition
             df_polars_collect_day = df_polars_collect.with_columns(pl.col(partition_by).dt.date().alias("created_date"))
             print(f"created_date column created from {partition_by} for {delta_table_name}")
         except Exception as e: 
-            st.write("Partition columns must be a date or datetime object:" + str(e))
             print(f"Couldn't make delta table with {partition_by} column")
             return pl.DataFrame()
     elif partition_range == "Month":
@@ -72,11 +150,9 @@ def create_delta_table(dataframe: pl.DataFrame, delta_table_name: str, partition
             df_polars_collect_month = df_polars_collect.with_columns(pl.col(partition_by).dt.month().alias("created_month"))
             print(f"created_month column created from {partition_by} for {delta_table_name}")
         except Exception as e: 
-            st.write("Partition columns must be a date or datetime object:" + str(e))
             print(f"Couldn't make delta table with {partition_by} column")
             return pl.DataFrame()
     else:
-        st.write("Partition range must be either 'daily' or 'monthly'")
         print(f"Couldn't make delta table with {partition_range} range")
         return pl.DataFrame()
     
@@ -94,7 +170,6 @@ def create_delta_table(dataframe: pl.DataFrame, delta_table_name: str, partition
                 print(f"If no error message, {delta_table_name} delta table created!")
                 df_polars_collect_none.write_delta(delta_table_uri, mode=write_mode.lower())
         except Exception as e: 
-            st.write("Cannot create delta table: " + str(e))
             return pl.DataFrame()
     elif partition_range == "Day":
         try:
@@ -105,23 +180,18 @@ def create_delta_table(dataframe: pl.DataFrame, delta_table_name: str, partition
                 print(f"If no error message, {delta_table_name} delta table created!")
                 df_polars_collect_day.write_delta(delta_table_uri, mode=write_mode.lower(), delta_write_options={'partition_by': ['created_date']})
         except Exception as e: 
-            st.write("Cannot create delta table: " + str(e))
             return pl.DataFrame()
     elif partition_range == "Month":
         try:
             if write_mode.lower() == "none":
                 df_polars_collect_month.write_delta(delta_table_uri, mode="error", delta_write_options={'partition_by': ['created_month']})
-                st.write(f"If no error message, {delta_table_name} delta table created!")
                 print(f"If no error message, {delta_table_name} delta table created!")
             else:
                 df_polars_collect_month.write_delta(delta_table_uri, mode=write_mode.lower(), delta_write_options={'partition_by': ['created_month']})
-                st.write(f"If no error message, {delta_table_name} delta table created!")
                 print(f"If no error message, {delta_table_name} delta table created!")
         except Exception as e: 
-            st.write("Cannot create delta table: " + str(e))
             return pl.DataFrame()
     else:
-        st.write("Partition range must be either 'daily' or 'monthly'")
         print(f"Couldn't make delta table with {partition_range} range")
         return pl.DataFrame()
 
@@ -138,6 +208,5 @@ def read_delta_table(delta_table_name: str = "", date_range_start: str="", date_
         delta_table_pl = pl.scan_delta(delta_table_path, version = version)
         delta_table_pl = delta_table_pl.collect()
     else:
-        st.write("Partition column must be either 'created_date' or 'created_month'")
         return pl.DataFrame()
     return delta_table_pl

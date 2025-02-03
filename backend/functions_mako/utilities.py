@@ -9,8 +9,8 @@ from typing import Generator
 ##### Global Utiliies #####
 
 # Make general env variable for keys.json
-def env_keys() -> dict:
-    storage_options = {"google_service_account": "./.streamlit/keys.json" }
+def env_keys(keys_path: str) -> dict:
+    storage_options = {"google_service_account": keys_path }
     return storage_options
 
 # Combine and deduplicate library imports and code for custom functions
