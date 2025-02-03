@@ -1,11 +1,11 @@
 <script lang="ts">
     import { page } from '$app/stores';
-    import { Menu, X, Home, BarChart3 } from 'lucide-svelte';
+    import { Menu, X, Code, Settings } from 'lucide-svelte';
     
-    let isCollapsed = false;
+    let isCollapsed = true;
 </script>
 
-<aside class:w-16={isCollapsed} class:w-80={!isCollapsed} class="shrink-0 bg-gray-900 text-white transition-[width] duration-150 ease-out">
+<aside class:w-[84px]={isCollapsed} class:w-[315px]={!isCollapsed} class="shrink-0 bg-gray-900 text-white transition-[width] duration-150 ease-out">
     <div class="p-4 flex justify-between items-center border-b border-gray-800">
         <div class="overflow-hidden whitespace-nowrap">
             {#if !isCollapsed}
@@ -31,9 +31,9 @@
                     href="/" 
                     class="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-800 transition-colors {$page.url.pathname === '/' ? 'bg-gray-800' : ''}"
                 >
-                    <Home size={24} class="shrink-0" />
+                    <Code size={24} class="shrink-0" />
                     <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75" class:opacity-0={isCollapsed}>
-                        Home
+                        Build
                     </span>
                 </a>
             </li>
@@ -42,9 +42,9 @@
                     href="/data-management" 
                     class="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-800 transition-colors {$page.url.pathname.startsWith('/data-management') ? 'bg-gray-800' : ''}"
                 >
-                    <BarChart3 size={24} class="shrink-0" />
+                    <Settings size={24} class="shrink-0" />
                     <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75" class:opacity-0={isCollapsed}>
-                        Data Management
+                        Settings
                     </span>
                 </a>
             </li>

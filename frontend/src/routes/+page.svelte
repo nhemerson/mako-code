@@ -7,18 +7,19 @@
 	let monaco: typeof Monaco;
 	let editorContainer: HTMLElement;
 	let consoleContainer: HTMLElement;
-	let selectedLanguage = 'python';
+	let selectedLanguage: 'python' | 'sql' | 'rust' | 'javascript' = 'python';
 	let resizing = false;
-	let editorHeight = '70%';
+	let editorHeight = '80%';
+	let output = '';
 
 	const languages = [
-		{ id: 'python', name: 'Python' },
-		{ id: 'sql', name: 'SQL' },
-		{ id: 'rust', name: 'Rust' },
-		{ id: 'javascript', name: 'JavaScript' }
+		{ id: 'python' as const, name: 'Python' },
+		{ id: 'sql' as const, name: 'SQL' },
+		{ id: 'rust' as const, name: 'Rust' },
+		{ id: 'javascript' as const, name: 'JavaScript' }
 	];
 
-	const sampleCode = {
+	const sampleCode: Record<'python' | 'sql' | 'rust' | 'javascript', string> = {
 		python: `# Python example
 def greet(name):
     return f"Hello, {name}!"
@@ -63,20 +64,136 @@ const doubled = numbers.map(n => n * 2);
 console.log('Doubled numbers:', doubled);`
 	};
 
+	interface EditorFile {
+		name: string;
+		content: string;
+		model?: Monaco.editor.ITextModel;
+	}
+
+	let files: EditorFile[] = [
+		{ name: 'main.py', content: '# Python example\nprint("Hello World!")' },
+	];
+	let activeFileIndex = 0;
+	let editingFileName = -1;
+
+	function addNewFile() {
+		const newFileName = `file${files.length + 1}.py`;
+		files = [...files, { name: newFileName, content: '# New file' }];
+		activeFileIndex = files.length - 1;
+		
+		if (monaco && editor) {
+			const model = monaco.editor.createModel(
+				files[activeFileIndex].content,
+				'python'
+			);
+			files[activeFileIndex].model = model;
+			editor.setModel(files[activeFileIndex].model || null);
+		}
+	}
+
+	function switchFile(index: number) {
+		if (index === activeFileIndex) return;
+		
+		// Save current content
+		if (editor && files[activeFileIndex]) {
+			files[activeFileIndex].content = editor.getValue();
+		}
+		
+		activeFileIndex = index;
+		
+		if (editor && files[activeFileIndex]) {
+			if (!files[activeFileIndex].model) {
+				files[activeFileIndex].model = monaco.editor.createModel(
+					files[activeFileIndex].content,
+					'python'
+				);
+			}
+			editor.setModel(files[activeFileIndex].model || null);
+		}
+	}
+
+	function removeFile(index: number) {
+		// Don't allow removing the last file
+		if (files.length <= 1) return;
+
+		// Dispose of the model if it exists
+		if (files[index].model) {
+			files[index].model.dispose();
+		}
+
+		// Remove the file
+		files = files.filter((_, i) => i !== index);
+
+		// Adjust active file index if needed
+		if (index === activeFileIndex) {
+			// If we removed the last file, go to the new last file
+			activeFileIndex = Math.min(index, files.length - 1);
+			if (editor && files[activeFileIndex]) {
+				if (!files[activeFileIndex].model) {
+					files[activeFileIndex].model = monaco.editor.createModel(
+						files[activeFileIndex].content,
+						'python'
+					);
+				}
+				editor.setModel(files[activeFileIndex].model || null);
+			}
+		} else if (index < activeFileIndex) {
+			// If we removed a file before the active file, decrement the index
+			activeFileIndex--;
+		}
+	}
+
 	function changeLanguage() {
 		const model = editor.getModel();
 		if (model) {
 			monaco.editor.setModelLanguage(model, selectedLanguage);
-			// Set sample code for the selected language
-			editor.setValue(sampleCode[selectedLanguage] || '// Start coding here');
+			editor.setValue(sampleCode[selectedLanguage]);
 		}
 	}
 
 	async function executeCode() {
 		const code = editor.getValue();
-		let output = '';
+		consoleEditor.setValue('Running...\n');
 
-		if (selectedLanguage === 'javascript' || selectedLanguage === 'typescript') {
+		if (selectedLanguage === 'python') {
+			try {
+				const response = await fetch('http://localhost:8000/execute', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ code })
+				});
+
+				const result = await response.json();
+				
+				if (result.success) {
+					if (result.output && result.output.trim()) {
+						output += result.output;
+					} else if (result.stdout && result.stdout.trim()) {
+						output += result.stdout;
+					}
+					
+					if (result.stderr && result.stderr.trim()) {
+						output += '\n\x1b[31m' + result.stderr + '\x1b[0m';
+					}
+					
+					if (!output.trim()) {
+						output = '// No output\n';
+					}
+				} else {
+					output = '\x1b[31m🔴 Error: ' + (result.error || result.output) + '\x1b[0m';
+				}
+
+				consoleEditor.setValue(output);
+				consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
+				
+				console.log('Raw backend response:', result);
+			} catch (error: any) {
+				consoleEditor.setValue('\x1b[31m🔴 Error: Failed to execute code. Make sure the backend server is running.\n' + error.message + '\x1b[0m');
+				consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
+			}
+		} else if (selectedLanguage === 'javascript') {
 			// Create a proxy console to capture output
 			const proxyConsole = {
 				log: (...args: any[]) => {
@@ -98,31 +215,14 @@ console.log('Doubled numbers:', doubled);`
 				const runCode = new Function('console', code);
 				runCode(proxyConsole);
 				consoleEditor.setValue(output || '// No output');
+				consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
 			} catch (error: any) {
 				consoleEditor.setValue(`🔴 Error: ${error.message}`);
-			}
-		} else if (selectedLanguage === 'python') {
-			try {
-				consoleEditor.setValue('Running...');
-				const response = await fetch('http://localhost:8000/execute', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({ code })
-				});
-
-				const result = await response.json();
-				if (result.success) {
-					consoleEditor.setValue(result.output || '// No output');
-				} else {
-					consoleEditor.setValue(`🔴 ${result.output}`);
-				}
-			} catch (error: any) {
-				consoleEditor.setValue(`🔴 Error: Failed to execute code. Make sure the backend server is running.\n${error.message}`);
+				consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
 			}
 		} else {
-			consoleEditor.setValue(`🔴 Error: Running ${languages.find(l => l.id === selectedLanguage)?.name || selectedLanguage} code is not supported.\nCurrently supported yet.`);
+			consoleEditor.setValue(`🔴 Error: Running ${languages.find(l => l.id === selectedLanguage)?.name || selectedLanguage} code is not supported yet.`);
+			consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
 		}
 	}
 
@@ -140,6 +240,10 @@ console.log('Doubled numbers:', doubled);`
 				{ token: '', background: '1A1A1A' },
 				{ token: 'keyword', foreground: '569CD6' },
 				{ token: 'number', foreground: 'B5CEA8' },
+				{ token: 'error', foreground: 'F14C4C' },
+				{ token: 'warning', foreground: 'CCA700' },
+				{ token: 'info', foreground: '3794FF' },
+				{ token: 'success', foreground: '89D185' }
 			],
 			colors: {
 				'editor.background': '#1A1A1A',
@@ -169,11 +273,13 @@ console.log('Doubled numbers:', doubled);`
 			executeCode();
 		});
 		
+		// Create model for initial file
 		const model = monaco.editor.createModel(
-			sampleCode[selectedLanguage],
-			selectedLanguage
+			files[0].content,
+			'python'
 		);
-		editor.setModel(model);
+		files[0].model = model;
+		editor.setModel(files[0].model || null);
 
 		consoleEditor = monaco.editor.create(consoleContainer, {
 			automaticLayout: true,
@@ -186,10 +292,66 @@ console.log('Doubled numbers:', doubled);`
 			readOnly: true,
 			padding: {
 				top: 16
-			}
+			},
+			renderLineHighlight: 'none',
+			scrollBeyondLastLine: false,
+			wordWrap: 'on',
+			lineNumbers: 'off',
+			glyphMargin: false,
+			folding: false,
+			guides: { indentation: false },
+			overviewRulerBorder: false,
+			overviewRulerLanes: 0,
+			hideCursorInOverviewRuler: true
 		});
 		
 		consoleEditor.setValue('// Console output will appear here');
+
+		// Register linting provider
+		monaco.languages.registerDiagnosticsProvider('python', {
+			async provideDignostics(model) {
+				if (selectedLanguage !== 'python') return { diagnostics: [] };
+
+				try {
+					const code = model.getValue();
+					const response = await fetch('http://localhost:8000/lint', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ code })
+					});
+
+					const lintResults = await response.json();
+					
+					// Format and display lint results in console
+					let consoleOutput = '';
+					if (lintResults.length === 0) {
+						consoleOutput = '✅ No linting errors found';
+					} else {
+						consoleOutput = '🔍 Ruff found the following issues:\n\n';
+						lintResults.forEach((error: any) => {
+							consoleOutput += `Line ${error.line}, Column ${error.column}: ${error.message} (${error.code})\n`;
+						});
+					}
+					consoleEditor.setValue(consoleOutput);
+
+					return {
+						diagnostics: lintResults.map((error: any) => ({
+							severity: monaco.MarkerSeverity.Error,
+							startLineNumber: error.line,
+							startColumn: error.column,
+							endLineNumber: error.line,
+							endColumn: error.column + 1,
+							message: error.message,
+							code: error.code
+						}))
+					};
+				} catch (error) {
+					console.error('Linting failed:', error);
+					consoleEditor.setValue('🔴 Error: Failed to run Ruff linter. Make sure the backend server is running.');
+					return { diagnostics: [] };
+				}
+			}
+		});
 	});
 
 	onDestroy(() => {
@@ -232,47 +394,112 @@ console.log('Doubled numbers:', doubled);`
 		window.removeEventListener('mousemove', handleResize);
 		window.removeEventListener('mouseup', stopResize);
 	}
+
+	function startRename(index: number, event: MouseEvent) {
+		if (event.detail === 2) {
+			event.preventDefault();
+			editingFileName = index;
+		}
+	}
+
+	function handleRename(index: number, event: KeyboardEvent) {
+		const input = event.target as HTMLInputElement;
+		
+		if (event.key === 'Enter') {
+			const newName = input.value.trim();
+			if (newName && newName !== files[index].name) {
+				files[index].name = newName;
+				files = [...files];
+			}
+			editingFileName = -1;
+		} else if (event.key === 'Escape') {
+			editingFileName = -1;
+		}
+	}
+
+	function handleRenameBlur() {
+		editingFileName = -1;
+	}
 </script>
 
 <div class="flex-1 flex flex-col overflow-hidden">
-	<div class="flex flex-col h-screen">
-		<div class="w-full px-4 flex flex-col flex-1">
-			<div class="flex justify-between items-center mb-2 pt-2.5">
-				<div class="flex items-center space-x-4">
-					<select
-						bind:value={selectedLanguage}
-						on:change={changeLanguage}
-						class="bg-gray-800 text-white px-3 py-1.5 rounded-md border border-gray-600 focus:outline-none focus:border-blue-500"
+	<div class="flex h-screen">
+		<div class="w-[80%] flex flex-col flex-1">
+			<div class="flex flex-col">
+				<div class="flex items-center space-x-1 pt-2.5 overflow-x-auto">
+					{#each files as file, index}
+						<button
+							class="px-3 py-1.5 rounded-t-md border-t border-l border-r border-gray-700 
+								   {index === activeFileIndex ? 'bg-[#1A1A1A] text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}
+								   flex items-center space-x-2 min-w-[100px] max-w-[200px] group"
+							on:click={() => switchFile(index)}
+							on:mousedown={(e) => startRename(index, e)}
+						>
+							{#if editingFileName === index}
+								<input
+									type="text"
+									value={file.name}
+									class="bg-transparent border-none outline-none text-white w-full"
+									on:keydown={(e) => handleRename(index, e)}
+									on:blur={handleRenameBlur}
+									autofocus
+								/>
+							{:else}
+								<span class="truncate flex-1">{file.name}</span>
+							{/if}
+							<span
+								class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity px-1"
+								on:click|stopPropagation={() => removeFile(index)}
+							>
+								×
+							</span>
+						</button>
+					{/each}
+					<button
+						on:click={addNewFile}
+						class="px-3 py-1.5 rounded-md bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-700"
 					>
-						{#each languages as lang}
-							<option value={lang.id}>{lang.name}</option>
-						{/each}
-					</select>
+						+
+					</button>
+					
+					<div class="flex-1"></div>
+					
+					<span class="text-gray-500 text-sm pr-2.5">Press ⌘ + Enter to run</span>
 				</div>
-				<button 
-					on:click={executeCode}
-					class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium flex items-center space-x-2 transition-colors"
-				>
-					<span>▶</span>
-					<span>Run Code</span>
-				</button>
 			</div>
 			
-			<div class="editors-container flex-1 flex flex-col pt-2.5">
+			<div class="editors-container flex-1 flex flex-col">
 				<div 
 					class="editor-wrapper"
 					style="height: {editorHeight}"
 				>
-					<div class="editor-container rounded-lg overflow-hidden border border-gray-700" bind:this={editorContainer} />
+					<!-- svelte-ignore element_invalid_self_closing_tag -->
+					<div class="editor-container" bind:this={editorContainer} />
 				</div>
 				
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<!-- svelte-ignore element_invalid_self_closing_tag -->
 				<div 
 					class="resize-handle"
 					on:mousedown={startResize}
 				/>
 				
-				<div class="console-wrapper">
-					<div class="console-container rounded-lg overflow-hidden border border-gray-700" bind:this={consoleContainer} />
+				<div class="console-wrapper border-t border-gray-700">
+					<!-- svelte-ignore element_invalid_self_closing_tag -->
+					<div class="console-container" bind:this={consoleContainer} />
+				</div>
+			</div>
+		</div>
+		
+		<div class="w-[20%] border-l border-gray-700 flex flex-col bg-[#1A1A1A] p-4">
+			<div class="right-panel h-full overflow-y-auto">
+				<h2 class="text-white text-lg font-semibold mb-4">Right Panel</h2>
+				<div class="text-gray-300">
+					<!-- Add your HTML content here -->
+					<p class="mb-2">This is a regular HTML container where you can add any content.</p>
+					<div class="bg-gray-800 p-3 rounded-md">
+						<p>Sample content block</p>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -309,8 +536,6 @@ console.log('Doubled numbers:', doubled);`
 	.resize-handle {
 		height: 6px;
 		background-color: #2A2A2A;
-		border-top: 1px solid #404040;
-		border-bottom: 1px solid #404040;
 		cursor: row-resize;
 		transition: background-color 0.2s;
 		user-select: none;
@@ -325,5 +550,47 @@ console.log('Doubled numbers:', doubled);`
 	:global(body.resizing) {
 		user-select: none;
 		cursor: row-resize !important;
+	}
+
+	.right-panel {
+		scrollbar-width: thin;
+		scrollbar-color: #404040 #1A1A1A;
+	}
+
+	.right-panel::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	.right-panel::-webkit-scrollbar-track {
+		background: #1A1A1A;
+	}
+
+	.right-panel::-webkit-scrollbar-thumb {
+		background-color: #404040;
+		border-radius: 4px;
+	}
+
+	/* Add new styles for the tabs */
+	button {
+		outline: none;
+		transition: all 0.2s;
+	}
+
+	.overflow-x-auto {
+		scrollbar-width: thin;
+		scrollbar-color: #404040 #1A1A1A;
+	}
+
+	.overflow-x-auto::-webkit-scrollbar {
+		height: 8px;
+	}
+
+	.overflow-x-auto::-webkit-scrollbar-track {
+		background: #1A1A1A;
+	}
+
+	.overflow-x-auto::-webkit-scrollbar-thumb {
+		background-color: #404040;
+		border-radius: 4px;
 	}
 </style>

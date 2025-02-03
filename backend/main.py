@@ -1,26 +1,76 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 import sys
 from io import StringIO
 import contextlib
 import math
 import ast
 import polars as pl
+from functions_mako.ingestion import process_uploaded_file, DATASET_DIR
+import ruff
+import tempfile
+from typing import List, Dict, Optional, Union
 
 app = FastAPI()
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend URL
+    allow_origins=["http://localhost:5173"],  # SvelteKit dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 class CodeRequest(BaseModel):
+    code: str = Field(..., description="Python code to execute")
+    
+    @validator('code')
+    def validate_code_safety(cls, v):
+        if not is_safe_code(v):
+            raise ValueError("Code contains unsafe operations")
+        return v
+
+class UploadRequest(BaseModel):
+    newFileName: str = Field(..., description="Name for the uploaded file")
+
+class ExecutionResponse(BaseModel):
+    success: bool
+    output: str
+
+class UploadResponse(BaseModel):
+    success: bool
+    error: Optional[str] = None
+    filename: Optional[str] = None
+
+class ParquetData(BaseModel):
+    success: bool
+    data: List[Dict]
+    rows: int
+    columns: int
+
+class LintDiagnostic(BaseModel):
+    line: int
+    column: int
+    message: str
     code: str
+
+class Settings(BaseModel):
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]
+    SAFE_MATH_FUNCTIONS: List[str] = [
+        'sqrt', 'pow', 'sin', 'cos', 'tan', 'pi', 
+        'e', 'ceil', 'floor', 'abs'
+    ]
+    SAFE_POLARS_FUNCTIONS: List[str] = [
+        'DataFrame', 'Series', 'concat', 'col', 'lit',
+        # ... other functions ...
+    ]
+    
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
 
 def is_safe_code(code: str) -> bool:
     """Check if the code is safe to execute."""
@@ -110,7 +160,7 @@ def create_safe_globals():
         'zip': zip,
     }
 
-@app.post("/execute")
+@app.post("/execute", response_model=ExecutionResponse)
 async def execute_code(request: CodeRequest):
     try:
         if not is_safe_code(request.code):
@@ -142,6 +192,85 @@ async def execute_code(request: CodeRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/upload", response_model=UploadResponse)
+async def upload_file(
+    file: UploadFile,
+    request: UploadRequest
+):
+    """
+    Handle file upload and conversion to parquet
+    """
+    result = await process_uploaded_file(file, request.newFileName)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+@app.get("/api/read-parquet", response_model=ParquetData)
+async def read_parquet(filename: str = Query(...)):
+    """
+    Read a parquet file and return its contents
+    """
+    try:
+        print(f"Attempting to read parquet file: {filename}")
+        file_path = DATASET_DIR / filename
+        print(f"Full file path: {file_path}")
+        print(f"File exists: {file_path.exists()}")
+        
+        if not file_path.exists():
+            print(f"File not found at path: {file_path}")
+            raise HTTPException(status_code=404, detail=f"File {filename} not found at {file_path}")
+        
+        try:
+            # Read the parquet file
+            df = pl.read_parquet(file_path)
+            print(f"Successfully read parquet file with shape: {df.shape}")
+            
+            # Convert to list of dictionaries for JSON serialization
+            data = df.to_dicts()
+            print(f"Successfully converted to dictionary format with {len(data)} rows")
+            
+            return {
+                "success": True,
+                "data": data,
+                "rows": len(data),
+                "columns": len(data[0]) if data else 0
+            }
+        except Exception as e:
+            print(f"Error reading parquet file: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error reading parquet file: {str(e)}")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+@app.post("/lint", response_model=List[LintDiagnostic])
+async def lint_code(data: CodeRequest):
+    code = data.code
+    try:
+        # Create a temporary file for Ruff to analyze
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py') as tmp:
+            tmp.write(code)
+            tmp.flush()
+            
+            # Run Ruff
+            result = ruff.check([tmp.name])
+            
+            # Convert results to JSON-serializable format
+            diagnostics = []
+            for error in result:
+                diagnostics.append({
+                    "line": error.location.row,
+                    "column": error.location.column,
+                    "message": error.message,
+                    "code": error.code
+                })
+            
+            return diagnostics
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
