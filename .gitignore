@@ -1,81 +1,54 @@
-# Dependencies
-node_modules/
-/.pnp
-.pnp.js
-venv/
-env/
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 .Python
 .python-version
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Testing
-/coverage
-.coverage
-htmlcov/
-.tox/
-.pytest_cache/
-
-# Production build
-/build
-/dist
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
 *.egg-info/
-
-# Development
+.installed.cfg
+*.egg
+venv/
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-logs
-*.log
-
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# IDE - JetBrains
-.idea/
-*.iml
-*.iws
-.idea_modules/
-
-# macOS
+# Node/Frontend
+node_modules/
+.svelte-kit/
+package-lock.json
 .DS_Store
-.AppleDouble
-.LSOverride
-._*
+/build
+/.svelte-kit
+/package
+.env.*
+!.env.example
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
 
-# Misc
-.cache/
-.temp/
+# IDE
+.idea/
+.vscode/
 *.swp
 *.swo
-.next/
-out/
-.nuxt/
-.nitro/
-.output/
+.DS_Store
 
-# Frontend build artifacts
-.sass-cache/
-*.css.map
-*.sass.map
-*.scss.map
-
-# Backend
-*.sqlite3
-*.db
-media/
-static/ 
+# Project specific
+backend/data/
+backend/logs/
+*.log
+backend/data/datasets/
+backend/__pycache__/
+backend/functions_mako/__pycache__/
+backend/functions_mako/*.pyc
+backend/.ruff_cache/
+backend/tests/__pycache__/

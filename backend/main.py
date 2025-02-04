@@ -11,6 +11,9 @@ from functions_mako.ingestion import process_uploaded_file, DATASET_DIR
 import ruff
 import tempfile
 from typing import List, Dict, Optional, Union
+from pathlib import Path
+import subprocess
+import os
 
 app = FastAPI()
 
@@ -28,8 +31,8 @@ class CodeRequest(BaseModel):
     
     @validator('code')
     def validate_code_safety(cls, v):
-        if not is_safe_code(v):
-            raise ValueError("Code contains unsafe operations")
+        # Instead of raising an error, return the code
+        # The safety check will be done in the endpoint
         return v
 
 class UploadRequest(BaseModel):
@@ -38,6 +41,7 @@ class UploadRequest(BaseModel):
 class ExecutionResponse(BaseModel):
     success: bool
     output: str
+    error_type: Optional[str] = None
 
 class UploadResponse(BaseModel):
     success: bool
@@ -56,6 +60,11 @@ class LintDiagnostic(BaseModel):
     message: str
     code: str
 
+class LintRequest(BaseModel):
+    code: str
+    line: Optional[int] = None  # Make line optional
+    column: Optional[int] = None  # Make column optional
+
 class Settings(BaseModel):
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]
     SAFE_MATH_FUNCTIONS: List[str] = [
@@ -72,26 +81,50 @@ class Settings(BaseModel):
 
 settings = Settings()
 
-def is_safe_code(code: str) -> bool:
-    """Check if the code is safe to execute."""
+def is_safe_code(code: str) -> tuple[bool, str]:
+    """Check if the code is safe to execute and return detailed error messages."""
     try:
+        # First check basic syntax
         tree = ast.parse(code)
         for node in ast.walk(tree):
-            # Allow imports for math and polars
+            # Check for unsafe imports
             if isinstance(node, ast.Import):
                 if any(name.name not in ['math', 'polars'] for name in node.names):
-                    return False
+                    return False, "Unsafe import detected - only math and polars modules are allowed"
             if isinstance(node, ast.ImportFrom):
                 if node.module not in ['math', 'polars']:
-                    return False
-            # Prevent file operations
+                    return False, "Unsafe import detected - only math and polars modules are allowed"
+            # Check for unsafe calls
             if isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name):
                     if node.func.id in ['open', 'eval', 'exec']:
-                        return False
-        return True
-    except:
-        return False
+                        return False, f"Unsafe function call detected: {node.func.id}"
+        
+        # Run Ruff linter for additional checks
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as temp_file:
+            temp_file.write(code)
+            temp_file.flush()
+            
+            try:
+                result = subprocess.run(
+                    ["ruff", "check", temp_file.name], 
+                    capture_output=True, 
+                    text=True
+                )
+                if result.returncode != 0:
+                    # Get the first error message
+                    error_lines = result.stdout.strip().split('\n')
+                    if error_lines:
+                        return False, error_lines[0]
+            finally:
+                # Clean up temp file
+                os.unlink(temp_file.name)
+
+        return True, ""
+    except SyntaxError as se:
+        return False, f"Syntax error: {str(se)}"
+    except Exception as e:
+        return False, f"Code validation error: {str(e)}"
 
 def create_safe_globals():
     """Create a dictionary of safe functions and modules."""
@@ -162,10 +195,16 @@ def create_safe_globals():
 
 @app.post("/execute", response_model=ExecutionResponse)
 async def execute_code(request: CodeRequest):
-    try:
-        if not is_safe_code(request.code):
-            return {"success": False, "output": "Error: Code contains unsafe operations"}
+    # First check code safety
+    is_safe, error_msg = is_safe_code(request.code)
+    if not is_safe:
+        return {
+            "success": False,
+            "output": error_msg,
+            "error_type": "CodeValidationError"
+        }
 
+    try:
         # Create string buffer to capture output
         stdout = StringIO()
         stderr = StringIO()
@@ -180,18 +219,44 @@ async def execute_code(request: CodeRequest):
                 exec(compile(request.code, '<string>', 'exec'), safe_globals, local_vars)
                 
                 # Get the output
-                output = stdout.getvalue()
-                error = stderr.getvalue()
+                output = stdout.getvalue().strip()
+                error = stderr.getvalue().strip()
                 
                 if error:
-                    return {"success": False, "output": error}
-                return {"success": True, "output": output or "// No output"}
+                    return {
+                        "success": False, 
+                        "output": error,
+                        "error_type": "RuntimeError"
+                    }
+                
+                # Return meaningful message if no output
+                if not output:
+                    return {
+                        "success": True, 
+                        "output": "Code executed successfully (no output)",
+                        "error_type": None
+                    }
+                    
+                return {
+                    "success": True, 
+                    "output": output,
+                    "error_type": None
+                }
                 
             except Exception as e:
-                return {"success": False, "output": f"Error: {str(e)}"}
+                error_type = type(e).__name__
+                return {
+                    "success": False, 
+                    "output": str(e),
+                    "error_type": error_type
+                }
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "success": False,
+            "output": str(e),
+            "error_type": type(e).__name__
+        }
 
 @app.post("/api/upload", response_model=UploadResponse)
 async def upload_file(
@@ -247,30 +312,48 @@ async def read_parquet(filename: str = Query(...)):
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @app.post("/lint", response_model=List[LintDiagnostic])
-async def lint_code(data: CodeRequest):
-    code = data.code
+async def lint_code(request: LintRequest):
     try:
+        # First check for syntax errors
+        try:
+            ast.parse(request.code)
+        except SyntaxError as se:
+            return [{
+                "line": se.lineno or 1,
+                "column": se.offset or 1,
+                "message": f"Syntax error: {str(se)}",
+                "code": "E999"
+            }]
+            
         # Create a temporary file for Ruff to analyze
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py') as tmp:
-            tmp.write(code)
-            tmp.flush()
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py') as temp_file:
+            temp_file.write(request.code)
+            temp_file.flush()
             
-            # Run Ruff
-            result = ruff.check([tmp.name])
+            # Run Ruff linter
+            linter = ruff.Linter()
+            results = linter.lint(Path(temp_file.name))
             
-            # Convert results to JSON-serializable format
+            # Format the results
             diagnostics = []
-            for error in result:
-                diagnostics.append({
-                    "line": error.location.row,
-                    "column": error.location.column,
-                    "message": error.message,
-                    "code": error.code
-                })
+            for result in results:
+                diagnostic = {
+                    "line": result.location.row,
+                    "column": result.location.column,
+                    "message": f"{result.violation_message or result.message} ({result.code})",
+                    "code": result.code
+                }
+                diagnostics.append(diagnostic)
             
             return diagnostics
+
     except Exception as e:
-        return {"error": str(e)}
+        return [{
+            "line": 1,
+            "column": 1,
+            "message": f"Linting error: {str(e)}",
+            "code": "E999"
+        }]
 
 if __name__ == "__main__":
     import uvicorn
