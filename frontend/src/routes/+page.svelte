@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
+	import { setHasUnsavedChanges } from '$lib/stores/navigation';
+	import DataImportModal from '$lib/components/DataImportModal.svelte';
+	import DataframeView from '$lib/components/DataframeView.svelte';
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
 	let consoleEditor: Monaco.editor.IStandaloneCodeEditor;
@@ -9,8 +12,14 @@
 	let consoleContainer: HTMLElement;
 	let selectedLanguage: 'python' | 'sql' | 'rust' | 'javascript' = 'python';
 	let resizing = false;
-	let editorHeight = '80%';
+	let editorHeight = 'calc(100% - 250px)';
 	let output = '';
+	let showDataImportModal = false;
+	let datasets: Array<{ name: string; path: string }> = [];
+	let isExploreExpanded = true;  // New state variable for collapse/expand
+	let editingFileName = -1;
+	let showDropdownForDataset: string | null = null;  // Track which dataset's dropdown is open
+	let isSidebarCollapsed = true;  // New state for sidebar collapse
 
 	const languages = [
 		{ id: 'python' as const, name: 'Python' },
@@ -68,17 +77,28 @@ console.log('Doubled numbers:', doubled);`
 		name: string;
 		content: string;
 		model?: Monaco.editor.ITextModel;
+		type: 'code' | 'dataset';
+		datasetPath: string | null;  // null for code files, string for dataset files
 	}
 
 	let files: EditorFile[] = [
-		{ name: 'main.py', content: '# Python example\nprint("Hello World!")' },
+		{ 
+			name: 'main.py', 
+			content: '# Python example\nprint("Hello World!")', 
+			type: 'code',
+			datasetPath: null 
+		},
 	];
 	let activeFileIndex = 0;
-	let editingFileName = -1;
 
 	function addNewFile() {
 		const newFileName = `file${files.length + 1}.py`;
-		files = [...files, { name: newFileName, content: '# New file' }];
+		files = [...files, { 
+			name: newFileName, 
+			content: '# New file', 
+			type: 'code',
+			datasetPath: null 
+		}];
 		activeFileIndex = files.length - 1;
 		
 		if (monaco && editor) {
@@ -94,14 +114,15 @@ console.log('Doubled numbers:', doubled);`
 	function switchFile(index: number) {
 		if (index === activeFileIndex) return;
 		
-		// Save current content
-		if (editor && files[activeFileIndex]) {
+		// Save current content if it's a code tab
+		if (files[activeFileIndex].type === 'code' && editor) {
 			files[activeFileIndex].content = editor.getValue();
 		}
 		
 		activeFileIndex = index;
 		
-		if (editor && files[activeFileIndex]) {
+		// If switching to a code tab
+		if (files[activeFileIndex].type === 'code') {
 			if (!files[activeFileIndex].model) {
 				files[activeFileIndex].model = monaco.editor.createModel(
 					files[activeFileIndex].content,
@@ -109,6 +130,11 @@ console.log('Doubled numbers:', doubled);`
 				);
 			}
 			editor.setModel(files[activeFileIndex].model || null);
+			
+			// Ensure the editor updates its layout
+			requestAnimationFrame(() => {
+				editor?.layout();
+			});
 		}
 	}
 
@@ -239,12 +265,106 @@ console.log('Doubled numbers:', doubled);`
 		}
 	}
 
+	function addDatasetTab(datasetName: string, datasetPath: string) {
+		// Check if a tab for this dataset already exists
+		const existingIndex = files.findIndex(f => 
+			f.type === 'dataset' && 
+			f.datasetPath === datasetPath
+		);
+		if (existingIndex !== -1) {
+			// If it exists, switch to it
+			activeFileIndex = existingIndex;
+			return;
+		}
+
+		// Add new tab
+		files = [...files, { 
+			name: datasetName,
+			content: '',  // Dataset tabs don't need content
+			type: 'dataset',
+			datasetPath
+		}];
+		activeFileIndex = files.length - 1;
+	}
+
+	async function loadDatasets() {
+		try {
+			const response = await fetch('http://localhost:8000/api/list-datasets');
+			const data = await response.json();
+			datasets = data.datasets;
+		} catch (error) {
+			console.error('Failed to load datasets:', error);
+		}
+	}
+
+	async function deleteDataset(datasetPath: string) {
+		try {
+			const response = await fetch('http://localhost:8000/api/delete-dataset', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ path: datasetPath })
+			});
+
+			if (response.ok) {
+				// Remove the dataset from the list
+				datasets = datasets.filter(d => d.path !== datasetPath);
+				// Close any open tabs for this dataset
+				files = files.filter(f => f.type !== 'dataset' || f.datasetPath !== datasetPath);
+				if (files.length === 0) {
+					addNewFile();
+				}
+				activeFileIndex = 0;
+			} else {
+				console.error('Failed to delete dataset');
+			}
+		} catch (error) {
+			console.error('Error deleting dataset:', error);
+		}
+	}
+
+	function analyzeDataset(dataset: { name: string; path: string }) {
+		const analysisCode = `import polars as pl
+
+# Read the parquet file
+df = pl.read_parquet("./data/local_storage/${dataset.name}.parquet")
+
+# Print the dataframe
+print(df)`;
+
+		// Create new file with analysis code
+		files = [...files, { 
+			name: `analyze_${dataset.name}.py`, 
+			content: analysisCode, 
+			type: 'code',
+			datasetPath: null 
+		}];
+		activeFileIndex = files.length - 1;
+		
+		if (monaco && editor) {
+			const model = monaco.editor.createModel(
+				files[activeFileIndex].content,
+				'python'
+			);
+			files[activeFileIndex].model = model;
+			editor.setModel(files[activeFileIndex].model || null);
+		}
+	}
+
+	function handleClickOutside(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		if (!target.closest('.dataset-dropdown')) {
+			showDropdownForDataset = null;
+		}
+	}
+
 	onMount(async () => {
 		monaco = (await import('./monaco')).default;
 
-		// Register Python language features (keeping syntax highlighting)
-		const { registerPythonCompletions } = await import('$lib/pythonLanguageFeatures');
-		registerPythonCompletions(monaco);
+		// Remove Python language features registration
+		// const { registerPythonCompletions } = await import('$lib/pythonLanguageFeatures');
+		// registerPythonCompletions(monaco);
 
 		monaco.editor.defineTheme('my-theme', {
 			base: 'vs-dark',
@@ -262,13 +382,17 @@ console.log('Doubled numbers:', doubled);`
 				{ token: 'type', foreground: '4EC9B0' },
 			],
 			colors: {
-				'editor.background': '#181818',
+				'editor.background': '#1a1a1a',
 				'editor.foreground': '#D4D4D4',
 				'editor.lineHighlightBackground': '#2F323B',
 				'editor.selectionBackground': '#264F78',
 				'editor.inactiveSelectionBackground': '#3A3D41',
 				'editorLineNumber.foreground': '#858585',
 				'editorLineNumber.activeForeground': '#C6C6C6',
+				'scrollbar.shadow': '#1a1a1a',
+				'editorOverviewRuler.border': '#1a1a1a',
+				'scrollbarSlider.background': '#333333',
+				'scrollbarSlider.hoverBackground': '#404040'
 			}
 		});
 
@@ -283,14 +407,27 @@ console.log('Doubled numbers:', doubled);`
 			padding: {
 				top: 16
 			},
-			suggestOnTriggerCharacters: true,
-			quickSuggestions: true,
-			snippetSuggestions: 'inline',
+			suggestOnTriggerCharacters: false,
+			quickSuggestions: false,
+			snippetSuggestions: 'none',
+			wordBasedSuggestions: 'off',
+			parameterHints: {
+				enabled: false
+			},
+			overviewRulerBorder: false,
+			scrollbar: {
+				useShadows: false
+			}
 		});
 		
 		// Add keyboard shortcut
 		editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
 			executeCode();
+		});
+		
+		// Track changes
+		editor.onDidChangeModelContent(() => {
+			setHasUnsavedChanges(true);
 		});
 		
 		// Create model for initial file
@@ -326,7 +463,9 @@ console.log('Doubled numbers:', doubled);`
 		});
 		
 		consoleEditor.setValue('// Console output will appear here');
-		// Register linting provider
+		
+		// Removed automatic hover-based linting to prevent unwanted messages
+		/*
 		monaco.languages.registerHoverProvider('python', {
 			async provideHover(model: monaco.editor.ITextModel, position: monaco.Position, token: monaco.CancellationToken): Promise<monaco.languages.Hover | null> {
 				if (selectedLanguage !== 'python') return null;
@@ -375,12 +514,19 @@ console.log('Doubled numbers:', doubled);`
 				}
 			}
 		});
+		*/
+
+		loadDatasets();
+		
+		// Add click outside listener for dropdowns
+		document.addEventListener('click', handleClickOutside);
 	});
 
 	onDestroy(() => {
 		monaco?.editor.getModels().forEach((model: any) => model.dispose());
 		editor?.dispose();
 		consoleEditor?.dispose();
+		document.removeEventListener('click', handleClickOutside);
 	});
 
 	function startResize(e: MouseEvent) {
@@ -443,17 +589,23 @@ console.log('Doubled numbers:', doubled);`
 	function handleRenameBlur() {
 		editingFileName = -1;
 	}
+
+	function handleDataImportClose() {
+		showDataImportModal = false;
+		loadDatasets(); // Refresh dataset list after import
+	}
 </script>
 
 <div class="flex-1 flex flex-col overflow-hidden">
-	<div class="flex h-screen">
-		<div class="w-[80%] flex flex-col flex-1">
+	<div class="flex h-screen bg-[#1a1a1a]">
+		<div class="w-[60%] flex flex-col flex-1" style="width: {isSidebarCollapsed ? '97%' : '60%'}; transition: all 0.3s ease-in-out;">
 			<div class="flex flex-col">
 				<div class="flex items-center space-x-0 pt-2.5 overflow-x-auto">
 					{#each files as file, index}
 						<button
-							class="px-3 py-1.5 border-t border-l border-r border-[#333333] 
-								   {index === activeFileIndex ? 'bg-[#181818] text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}
+							class="px-3 py-1.5 {index === 0 ? 'border-l' : ''} border-t border-r border-[#333333] 
+								   bg-[#1a1a1a] text-gray-400 hover:bg-[#252525]
+								   {index === activeFileIndex ? 'border-t-2 border-t-white -mt-[1px] text-white' : ''}
 								   flex items-center min-w-[100px] max-w-[200px] group"
 							on:click={() => switchFile(index)}
 							on:mousedown={(e) => startRename(index, e)}
@@ -480,7 +632,7 @@ console.log('Doubled numbers:', doubled);`
 					{/each}
 					<button
 						on:click={addNewFile}
-						class="px-3 py-1.5 bg-gray-800 text-gray-400 hover:bg-gray-700 border border-[#333333]"
+						class="px-3 py-1.5 bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] border border-[#333333]"
 					>
 						+
 					</button>
@@ -496,8 +648,21 @@ console.log('Doubled numbers:', doubled);`
 					class="editor-wrapper"
 					style="height: {editorHeight}"
 				>
-					<!-- svelte-ignore element_invalid_self_closing_tag -->
-					<div class="editor-container" bind:this={editorContainer} />
+					<!-- Editor container always exists but conditionally visible -->
+					<div 
+						class="editor-container" 
+						style:display={files[activeFileIndex].type === 'code' ? 'block' : 'none'}
+						bind:this={editorContainer}
+					/>
+					
+					<!-- Dataset view only renders when needed -->
+					{#if files[activeFileIndex].type === 'dataset' && files[activeFileIndex].datasetPath}
+						<DataframeView datasetPath={files[activeFileIndex].datasetPath} />
+					{:else if files[activeFileIndex].type === 'dataset'}
+						<div class="flex items-center justify-center h-full text-red-400">
+							Error: Dataset path not specified
+						</div>
+					{/if}
 				</div>
 				
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -515,14 +680,139 @@ console.log('Doubled numbers:', doubled);`
 			</div>
 		</div>
 		
-		<div class="w-[20%] border-l border-[#333333] flex flex-col bg-[#181818] p-4">
-			<div class="right-panel h-full overflow-y-auto">
-				<h2 class="text-white font-semibold mb-4 text-xs">Right Panel</h2>
-				<div class="text-gray-300 text-xs">
-					<!-- Add your HTML content here -->
-					<p class="mb-2">This is a regular HTML container where you can add any content.</p>
-					<div class="bg-gray-800 p-3 rounded-md">
-						<p>Sample content block</p>
+		<div class="{isSidebarCollapsed ? 'w-[50px]' : 'w-[20%]'} border-l border-[#333333] flex flex-col bg-[#181818] p-4 relative transition-all duration-300 ease-in-out">
+			<button
+				class="absolute top-4 {isSidebarCollapsed ? 'left-1/2 -translate-x-1/2' : 'right-4'} text-gray-400 hover:text-white transition-colors"
+				on:click={() => isSidebarCollapsed = !isSidebarCollapsed}
+			>
+				<svg 
+					xmlns="http://www.w3.org/2000/svg" 
+					class="h-5 w-5 transform transition-transform duration-300 {isSidebarCollapsed ? 'rotate-180' : ''}" 
+					viewBox="0 0 24 24" 
+					fill="none" 
+					stroke="currentColor" 
+					stroke-width="2" 
+					stroke-linecap="round" 
+					stroke-linejoin="round"
+				>
+					<circle cx="12" cy="12" r="1" />
+					<circle cx="12" cy="5" r="1" />
+					<circle cx="12" cy="19" r="1" />
+				</svg>
+			</button>
+
+			<div class="right-panel h-full overflow-y-auto {isSidebarCollapsed ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300" style="visibility: {isSidebarCollapsed ? 'hidden' : 'visible'}">
+				<h2 class="text-white font-semibold mb-4 text-xs uppercase tracking-wider">Data Management</h2>
+				<div class="space-y-4">
+					<button
+						class="w-full px-4 py-2 bg-[#181818] hover:bg-[#222222] text-white rounded-lg transition-colors text-sm flex items-center justify-center gap-2 border border-[#333333]"
+						on:click={() => showDataImportModal = true}
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+							<polyline points="17 8 12 3 7 8" />
+							<line x1="12" y1="3" x2="12" y2="15" />
+						</svg>
+						Import Data
+					</button>
+
+					<h2 
+						class="text-white font-semibold mt-8 mb-4 text-xs uppercase tracking-wider flex items-center justify-between cursor-pointer hover:text-gray-300 transition-colors"
+						on:click={() => isExploreExpanded = !isExploreExpanded}
+					>
+						<span>Local Datasets</span>
+						<button 
+							class="text-gray-400 hover:text-white transition-colors"
+						>
+							<svg 
+								xmlns="http://www.w3.org/2000/svg" 
+								class="h-4 w-4 transform transition-transform duration-200 {isExploreExpanded ? 'rotate-0' : '-rotate-90'}" 
+								viewBox="0 0 24 24" 
+								fill="none" 
+								stroke="currentColor" 
+								stroke-width="2" 
+								stroke-linecap="round" 
+								stroke-linejoin="round"
+							>
+								<polyline points="6 9 12 15 18 9"></polyline>
+							</svg>
+						</button>
+					</h2>
+					<div 
+						class="space-y-1 overflow-hidden transition-all duration-200"
+						style="max-height: {isExploreExpanded ? '500px' : '0px'}; opacity: {isExploreExpanded ? '1' : '0'}"
+					>
+						{#if datasets.length === 0}
+							<div class="text-gray-400 text-sm p-1">
+								No datasets available
+							</div>
+						{:else}
+							{#each datasets as dataset}
+								<div 
+									class="flex items-center justify-between gap-2 text-gray-400 py-1 px-2 hover:bg-[#222222] rounded-lg transition-colors group"
+								>
+									<div 
+										class="flex items-center gap-2 flex-1 cursor-pointer"
+										on:click={() => addDatasetTab(dataset.name, dataset.path)}
+									>
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+											<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+											<line x1="3" y1="9" x2="21" y2="9"/>
+											<line x1="3" y1="15" x2="21" y2="15"/>
+											<line x1="9" y1="9" x2="9" y2="21"/>
+										</svg>
+										<span class="text-sm">{dataset.name}</span>
+									</div>
+									<div class="dataset-dropdown relative">
+										<button
+											class="p-1 opacity-0 group-hover:opacity-100 hover:bg-[#333333] rounded transition-all"
+											on:click|stopPropagation={() => showDropdownForDataset = showDropdownForDataset === dataset.path ? null : dataset.path}
+										>
+											<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+												<circle cx="12" cy="12" r="1" />
+												<circle cx="12" cy="5" r="1" />
+												<circle cx="12" cy="19" r="1" />
+											</svg>
+										</button>
+										
+										{#if showDropdownForDataset === dataset.path}
+											<div 
+												class="fixed mt-1 w-48 bg-[#222222] rounded-lg shadow-lg border border-[#333333] z-[100]"
+												style="left: calc(100% - 200px); transform: translateY(-50%);"
+												on:click|stopPropagation
+											>
+												<button
+													class="w-full px-4 py-2 text-sm text-left text-gray-400 hover:bg-[#333333] hover:text-white transition-colors flex items-center gap-2"
+													on:click={() => analyzeDataset(dataset)}
+												>
+													<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+														<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+														<path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+													</svg>
+													Analyze Dataset
+												</button>
+												<button
+													class="w-full px-4 py-2 text-sm text-left text-red-400 hover:bg-[#333333] hover:text-red-300 transition-colors flex items-center gap-2"
+													on:click={() => {
+														if (confirm('Are you sure you want to delete this dataset?')) {
+															deleteDataset(dataset.path);
+														}
+														showDropdownForDataset = null;
+													}}
+												>
+													<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+														<path d="M3 6h18"></path>
+														<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+														<path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+													</svg>
+													Delete Dataset
+												</button>
+											</div>
+										{/if}
+									</div>
+								</div>
+							{/each}
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -530,11 +820,16 @@ console.log('Doubled numbers:', doubled);`
 	</div>
 </div>
 
+<DataImportModal
+	show={showDataImportModal}
+	onClose={handleDataImportClose}
+/>
+
 <style>
 	:global(body) {
 		margin: 0;
 		padding: 0;
-		background-color: #181818;
+		background-color: #1a1a1a;
 	}
 
 	.editors-container {
@@ -544,17 +839,20 @@ console.log('Doubled numbers:', doubled);`
 
 	.editor-wrapper {
 		transition: height 0.05s ease;
+		min-height: 100px; /* Add minimum height */
+		max-height: calc(100% - 100px); /* Ensure there's always space for console */
 	}
 
 	.console-wrapper {
-		flex: 1;
-		min-height: 0; /* Important for flex container */
+		flex: 1; /* Take remaining space */
+		min-height: 100px; /* Minimum height when resizing */
+		border-top: 1px solid #333333;
 	}
 
 	.editor-container, .console-container {
 		height: 100%;
 		width: 100%;
-		background-color: #181818;
+		background-color: #1a1a1a;
 	}
 
 	.resize-handle {
