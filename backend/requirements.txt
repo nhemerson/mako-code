@@ -1,8 +1,9 @@
-fastapi>=0.68.0
-uvicorn>=0.15.0
+fastapi==0.109.0
+uvicorn==0.27.0
 pydantic>=1.8.2
-python-multipart>=0.0.5
+python-multipart==0.0.6
 RestrictedPython>=6.0
-polars>=1.21.0
+polars==0.20.3
 pyarrow>=19.0.0
-ruff>=0.9.4
+ruff==0.1.14
+duckdb>=0.10.0

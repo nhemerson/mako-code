@@ -1,14 +1,54 @@
 <script lang="ts">
     import { page } from '$app/stores';
-    import { Menu, X, Code, Settings } from 'lucide-svelte';
+    import { goto } from '$app/navigation';
+    import { Menu, ChevronLeft, Code, Settings } from 'lucide-svelte';
+    import { hasUnsavedChanges } from '$lib/stores/navigation';
+    import ConfirmNavigationModal from './ConfirmNavigationModal.svelte';
+    import SettingsModal from './SettingsModal.svelte';
     
     let isCollapsed = true;
+    let showConfirmModal = false;
+    let showSettingsModal = false;
+    let pendingNavigation: string | null = null;
+
+    function handleNavigation(href: string) {
+        if ($page.url.pathname === '/' && $hasUnsavedChanges) {
+            pendingNavigation = href;
+            showConfirmModal = true;
+        } else {
+            goto(href);
+        }
+    }
+
+    function confirmNavigation() {
+        if (pendingNavigation) {
+            goto(pendingNavigation);
+            showConfirmModal = false;
+            pendingNavigation = null;
+        }
+    }
+
+    function cancelNavigation() {
+        showConfirmModal = false;
+        pendingNavigation = null;
+    }
 </script>
 
+<ConfirmNavigationModal 
+    show={showConfirmModal}
+    onConfirm={confirmNavigation}
+    onCancel={cancelNavigation}
+/>
+
+<SettingsModal
+    show={showSettingsModal}
+    onClose={() => showSettingsModal = false}
+/>
+
 <aside 
-    class:w-[84px]={isCollapsed} 
-    class:w-[315px]={!isCollapsed} 
-    class="shrink-0 bg-[#181818] text-white transition-[width] duration-150 ease-out border-r border-[#333333]"
+    class:w-[64px]={isCollapsed} 
+    class:w-[240px]={!isCollapsed} 
+    class="shrink-0 bg-[#1a1a1a] text-white transition-[width] duration-150 ease-out border-r border-[#333333]"
 >
     <div class="p-4 flex justify-between items-center border-b border-[#333333]">
         <div class="overflow-hidden whitespace-nowrap">
@@ -18,39 +58,39 @@
         </div>
         <button 
             on:click={() => isCollapsed = !isCollapsed}
-            class="p-2 hover:bg-[#222222] rounded-lg transition-colors"
+            class="{isCollapsed ? 'mx-auto' : ''} p-2 hover:bg-[#222222] rounded-lg transition-colors"
         >
             {#if isCollapsed}
                 <Menu size={24} />
             {:else}
-                <X size={24} />
+                <ChevronLeft size={24} />
             {/if}
         </button>
     </div>
 
-    <nav class="p-4">
-        <ul class="space-y-4">
+    <nav class="p-2">
+        <ul class="space-y-2">
             <li>
-                <a 
-                    href="/" 
-                    class="flex items-center gap-4 p-3 rounded-lg hover:bg-[#222222] transition-colors {$page.url.pathname === '/' ? 'bg-[#222222]' : ''}"
+                <button 
+                    on:click={() => handleNavigation('/')}
+                    class="w-full flex items-center gap-4 rounded-lg hover:bg-[#222222] transition-colors {$page.url.pathname === '/' ? 'bg-[#222222]' : ''} {isCollapsed ? 'px-2' : 'px-4'} py-3"
                 >
                     <Code size={24} class="shrink-0" />
                     <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75" class:opacity-0={isCollapsed}>
                         Build
                     </span>
-                </a>
+                </button>
             </li>
             <li>
-                <a 
-                    href="/data-management" 
-                    class="flex items-center gap-4 p-3 rounded-lg hover:bg-[#222222] transition-colors {$page.url.pathname.startsWith('/data-management') ? 'bg-[#222222]' : ''}"
+                <button 
+                    on:click={() => showSettingsModal = true}
+                    class="w-full flex items-center gap-4 rounded-lg hover:bg-[#222222] transition-colors {$page.url.pathname.startsWith('/settings') ? 'bg-[#222222]' : ''} {isCollapsed ? 'px-2' : 'px-4'} py-3"
                 >
                     <Settings size={24} class="shrink-0" />
                     <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75" class:opacity-0={isCollapsed}>
                         Settings
                     </span>
-                </a>
+                </button>
             </li>
         </ul>
     </nav>

@@ -1,4 +1,4 @@
-Pydantic Run:
+### Pydantic Run:
 website: https://pydantic.run
 https://github.com/pydantic/pydantic.run
 
@@ -50,3 +50,17 @@ Here's a minimal HTML page that provides a link to create a new sandbox with two
   redirectUrl.searchParams.append('files', JSON.stringify(files))
   document.querySelector('div').innerHTML = `<a href="${redirectUrl}">Click here to create a new sandbox</a>`
 </script>
+
+
+### Streamlit:
+https://github.com/streamlit/streamlit
+
+- Dataframe Component:
+  https://github.com/streamlit/streamlit/blob/develop/frontend/lib/src/components/widgets/DataFrame/DataFrame.tsx
+
+
+### Duck UI
+https://github.com/caioricciuti/duck-ui
+
+- SQL Editor: https://github.com/caioricciuti/duck-ui/blob/main/src/components/editor/SqlEditor.tsx
+- Data Table: https://github.com/caioricciuti/duck-ui/blob/main/src/components/table/DuckUItable.tsx

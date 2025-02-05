@@ -52,3 +52,5 @@ backend/functions_mako/__pycache__/
 backend/functions_mako/*.pyc
 backend/.ruff_cache/
 backend/tests/__pycache__/
+directions/prompts.md
+directions/repos.md
