@@ -76,14 +76,9 @@ class Settings(BaseModel):
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]
     SAFE_MATH_FUNCTIONS: List[str] = [
         'sqrt', 'pow', 'sin', 'cos', 'tan', 'pi', 
-        'e', 'ceil', 'floor', 'abs'
+        'e', 'ceil', 'floor'
     ]
-    SAFE_POLARS_FUNCTIONS: List[str] = [
-        'DataFrame', 'Series', 'concat', 'col', 'lit',
-        'sum', 'mean', 'min', 'max', 'count', 'std', 'var',
-        'struct', 'from_dict', 'from_records', 'date_range',
-        'scan_csv', 'select', 'when', 'arange'
-    ]
+    SAFE_POLARS_FUNCTIONS: List[str] = ['*']  # Allow all Polars functions
     
     class Config:
         env_file = ".env"
@@ -108,6 +103,7 @@ STDLIB_MODULES = {
 # Add GCS and BigQuery modules to allowed modules
 ALLOWED_EXTERNAL_MODULES = {
     'polars',
+    'functions_mako',
     'google.cloud',
     'google.cloud.storage',
     'google.cloud.bigquery',
@@ -169,57 +165,21 @@ def is_safe_code(code: str) -> tuple[bool, str]:
         return False, f"Code validation error: {str(e)}"
 
 def create_safe_globals():
-    """Create a dictionary of safe functions and modules."""
+    """Create a dictionary of safe globals for code execution"""
     safe_globals = {}
     
-    # Add environment variables from .env
-    load_dotenv()
-    
-    # Only expose necessary environment variables
-    safe_globals['env'] = {
-        'GOOGLE_APPLICATION_CREDENTIALS': os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-    }
-    safe_globals['os'] = os  # Make sure os is available for path operations
-    
-    # Add all standard library modules
-    for module_name in STDLIB_MODULES:
-        try:
-            module = __import__(module_name)
-            safe_globals[module_name] = module
-        except ImportError:
-            continue
+    # Add polars module - expose the entire module
+    import polars as pl
+    safe_globals['polars'] = pl
+    safe_globals['pl'] = pl  # Allow both 'polars' and 'pl' as module names
 
-    # Create a dictionary for polars safe functions
-    safe_polars = {
-        'DataFrame': pl.DataFrame,
-        'Series': pl.Series,
-        'concat': pl.concat,
-        'col': pl.col,
-        'lit': pl.lit,
-        'sum': pl.sum,
-        'mean': pl.mean,
-        'min': pl.min,
-        'max': pl.max,
-        'count': pl.count,
-        'std': pl.std,
-        'var': pl.var,
-        'struct': pl.struct,
-        'from_dict': pl.from_dict,
-        'from_records': pl.from_records,
-        'date_range': pl.date_range,
-        'scan_csv': pl.scan_csv,
-        'select': pl.select,
-        'when': pl.when,
-        'arange': pl.arange,
-    }
-
-    # Add polars module
-    safe_globals['polars'] = safe_polars
-    safe_globals['pl'] = safe_polars  # Allow both 'polars' and 'pl' as module names
-
-    # Add DuckDB module
-    import duckdb
-    safe_globals['duckdb'] = duckdb
+    # Add functions_mako.ingestion module with read_parquet
+    from functions_mako import ingestion
+    safe_globals['functions_mako'] = type('SafeMako', (), {
+        'ingestion': type('SafeIngestion', (), {
+            'read_parquet': pl.read_parquet
+        })
+    })
 
     # Add built-in functions
     safe_globals.update({
