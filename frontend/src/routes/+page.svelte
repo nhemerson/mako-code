@@ -20,6 +20,7 @@
 	let editingFileName = -1;
 	let showDropdownForDataset: string | null = null;  // Track which dataset's dropdown is open
 	let isSidebarCollapsed = true;  // New state for sidebar collapse
+	let draggedTabIndex: number | null = null;
 
 	const languages = [
 		{ id: 'python' as const, name: 'Python' },
@@ -90,6 +91,48 @@ console.log('Doubled numbers:', doubled);`
 		},
 	];
 	let activeFileIndex = 0;
+
+	function handleDragStart(index: number, event: DragEvent) {
+		draggedTabIndex = index;
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+		}
+	}
+
+	function handleDragOver(index: number, event: DragEvent) {
+		event.preventDefault();
+		if (draggedTabIndex === null || draggedTabIndex === index) return;
+		
+		const tabElements = document.querySelectorAll('.tab-button');
+		const draggedTab = tabElements[draggedTabIndex] as HTMLElement;
+		const targetTab = tabElements[index] as HTMLElement;
+		
+		if (draggedTab && targetTab) {
+			const draggedRect = draggedTab.getBoundingClientRect();
+			const targetRect = targetTab.getBoundingClientRect();
+			
+			// Update files array
+			const newFiles = [...files];
+			const [draggedFile] = newFiles.splice(draggedTabIndex, 1);
+			newFiles.splice(index, 0, draggedFile);
+			files = newFiles;
+			
+			// Update active file index
+			if (activeFileIndex === draggedTabIndex) {
+				activeFileIndex = index;
+			} else if (activeFileIndex > draggedTabIndex && activeFileIndex <= index) {
+				activeFileIndex--;
+			} else if (activeFileIndex < draggedTabIndex && activeFileIndex >= index) {
+				activeFileIndex++;
+			}
+			
+			draggedTabIndex = index;
+		}
+	}
+
+	function handleDragEnd(event: DragEvent) {
+		draggedTabIndex = null;
+	}
 
 	function addNewFile() {
 		const newFileName = `file${files.length + 1}.py`;
@@ -603,12 +646,17 @@ print(df)`;
 				<div class="flex items-center space-x-0 pt-2.5 overflow-x-auto">
 					{#each files as file, index}
 						<button
-							class="px-3 py-1.5 {index === 0 ? 'border-l' : ''} border-t border-r border-[#333333] 
+							class="tab-button px-3 py-1.5 {index === 0 ? 'border-l' : ''} border-t border-r border-[#333333] 
 								   bg-[#1a1a1a] text-gray-400 hover:bg-[#252525]
 								   {index === activeFileIndex ? 'border-t-2 border-t-white -mt-[1px] text-white' : ''}
+								   {draggedTabIndex === index ? 'opacity-50' : ''}
 								   flex items-center min-w-[100px] max-w-[200px] group"
 							on:click={() => switchFile(index)}
 							on:mousedown={(e) => startRename(index, e)}
+							draggable="true"
+							on:dragstart={(e) => handleDragStart(index, e)}
+							on:dragover={(e) => handleDragOver(index, e)}
+							on:dragend={handleDragEnd}
 						>
 							{#if editingFileName === index}
 								<input

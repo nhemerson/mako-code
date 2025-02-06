@@ -3,6 +3,10 @@
 ## [Unreleased] - 2025-02-05
 
 ### Added
+- Drag-and-drop functionality for editor tabs
+  - Tabs can be reordered by dragging and dropping
+  - Visual feedback during drag operations
+  - Maintains tab state and content during reordering
 - Secure environment variables handling for cloud storage access
   - Added support for GCS credentials via .env file
   - Implemented secure credential handling in code execution environment
