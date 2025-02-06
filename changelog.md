@@ -3,6 +3,11 @@
 ## [Unreleased] - 2025-02-05
 
 ### Added
+- Secure environment variables handling for cloud storage access
+  - Added support for GCS credentials via .env file
+  - Implemented secure credential handling in code execution environment
+  - Limited environment variable exposure for enhanced security
+  - Fixed SSL compatibility issues with urllib3
 - Dataset viewing capability with tabbed interface
 - Improved Monaco Editor state preservation when switching between code and dataset tabs
   - Editor state is now maintained when switching between tabs

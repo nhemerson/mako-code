@@ -7,3 +7,7 @@ polars==0.20.3
 pyarrow>=19.0.0
 ruff==0.1.14
 duckdb>=0.10.0
+python-dotenv==1.0.0
+google-cloud-storage==3.0.0
+google-cloud-bigquery-storage==2.26.0
+urllib3<2.0.0  # Pin to version 1.x to avoid SSL warnings

@@ -14,6 +14,7 @@ from typing import List, Dict, Optional, Union
 from pathlib import Path
 import subprocess
 import os
+from dotenv import load_dotenv
 
 app = FastAPI()
 
@@ -25,6 +26,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Load environment variables at startup
+load_dotenv()
+if not os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+    print("Warning: GOOGLE_APPLICATION_CREDENTIALS not found in environment variables")
 
 class CodeRequest(BaseModel):
     code: str = Field(..., description="Python code to execute")
@@ -99,6 +105,15 @@ STDLIB_MODULES = {
     'unittest', 'urllib', 'uuid', 'warnings', 'wave', 'weakref', 'xml', 'xmlrpc', 'zipfile', 'zlib'
 }
 
+# Add GCS and BigQuery modules to allowed modules
+ALLOWED_EXTERNAL_MODULES = {
+    'polars',
+    'google.cloud',
+    'google.cloud.storage',
+    'google.cloud.bigquery',
+    'google.cloud.bigquery_storage'
+}
+
 def is_safe_code(code: str) -> tuple[bool, str]:
     """Check if the code is safe to execute and return detailed error messages."""
     try:
@@ -108,15 +123,19 @@ def is_safe_code(code: str) -> tuple[bool, str]:
             # Check for unsafe imports
             if isinstance(node, ast.Import):
                 for name in node.names:
-                    # Allow polars and any module from Python's standard library
-                    if name.name == 'polars' or name.name in STDLIB_MODULES:
+                    # Allow standard library modules, polars, and GCS modules
+                    module_name = name.name.split('.')[0]  # Get the root module name
+                    if (module_name in STDLIB_MODULES or 
+                        any(name.name.startswith(allowed) for allowed in ALLOWED_EXTERNAL_MODULES)):
                         continue
-                    return False, f"Unsafe import detected - only standard library modules and polars are allowed"
+                    return False, f"Unsafe import detected: {name.name} - only standard library modules, polars, and Google Cloud modules are allowed"
             if isinstance(node, ast.ImportFrom):
-                # Allow polars and any module from Python's standard library
-                if node.module == 'polars' or node.module in STDLIB_MODULES:
+                # Allow standard library modules, polars, and GCS modules
+                module_name = node.module.split('.')[0] if node.module else ''
+                if (module_name in STDLIB_MODULES or 
+                    any(node.module.startswith(allowed) for allowed in ALLOWED_EXTERNAL_MODULES)):
                     continue
-                return False, f"Unsafe import detected - only standard library modules and polars are allowed"
+                return False, f"Unsafe import detected: {node.module} - only standard library modules, polars, and Google Cloud modules are allowed"
             # Check for unsafe calls
             if isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name):
@@ -152,6 +171,15 @@ def is_safe_code(code: str) -> tuple[bool, str]:
 def create_safe_globals():
     """Create a dictionary of safe functions and modules."""
     safe_globals = {}
+    
+    # Add environment variables from .env
+    load_dotenv()
+    
+    # Only expose necessary environment variables
+    safe_globals['env'] = {
+        'GOOGLE_APPLICATION_CREDENTIALS': os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    }
+    safe_globals['os'] = os  # Make sure os is available for path operations
     
     # Add all standard library modules
     for module_name in STDLIB_MODULES:
