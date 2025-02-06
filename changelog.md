@@ -31,6 +31,11 @@
   - Added full-screen dark overlay for better focus
   - Maintained all existing settings functionality
   - Improved accessibility with keyboard navigation
+- Added a save method to the LazyFrame returned by the scan_parquet function in ingestion.py
+  - This method allows users to collect the LazyFrame 
+  - Save it as a Parquet file in the local dataset folder 
+  - The method ensures the dataset directory exists before saving 
+  - Provides console output to confirm the save operation and file existence.
 
 ### Fixed
 - Issue where Monaco Editor would lose state when switching to dataset tabs

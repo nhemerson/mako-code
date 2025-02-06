@@ -8,7 +8,47 @@ from typing import Union
 
 # Get the absolute path to the backend directory
 BACKEND_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DATASET_DIR = BACKEND_DIR / "data" / "datasets"
+DATASET_DIR = BACKEND_DIR / "data" / "local_storage"
+
+def scan_parquet(file_path: Union[str, Path]) -> pl.LazyFrame:
+    """
+    Wrapper for pl.scan_parquet that adds a save method to save locally.
+    
+    Args:
+        file_path: Path to the parquet file to scan
+        
+    Returns:
+        LazyFrame with added save method
+    """
+    # Get the base lazy frame
+    lf = pl.scan_parquet(file_path)
+    
+    # Add save method
+    def save(filename: str):
+        """
+        Save the LazyFrame as a parquet file in the local storage directory.
+        
+        Args:
+            filename: Name for the saved file (without extension)
+        """
+        # Ensure directory exists before trying to save
+        ensure_dataset_dir()
+            
+        # Create full save path
+        save_path = DATASET_DIR / f'{filename}.parquet'
+        
+        # Create parent directories if they don't exist
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Collect and save
+        lf.collect().write_parquet(save_path)
+        print(f"File saved successfully. File exists: {save_path.exists()}")
+        
+    # Attach save method to lazy frame
+    lf.save = save.__get__(lf)
+    
+    return lf
+
 
 def ensure_dataset_dir():
     """Ensure the datasets directory exists"""
