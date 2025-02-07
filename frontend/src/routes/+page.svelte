@@ -78,8 +78,9 @@ console.log('Doubled numbers:', doubled);`
 		name: string;
 		content: string;
 		model?: Monaco.editor.ITextModel;
-		type: 'code' | 'dataset';
+		type: 'code' | 'dataset' | 'context';
 		datasetPath: string | null;  // null for code files, string for dataset files
+		datasetName?: string;
 	}
 
 	let files: EditorFile[] = [
@@ -208,22 +209,23 @@ console.log('Doubled numbers:', doubled);`
 	function switchFile(index: number) {
 		if (index === activeFileIndex) return;
 		
-		// Save current content if it's a code tab
-		if (files[activeFileIndex].type === 'code' && editor) {
+		// Save current content if it's a code or context tab
+		if ((files[activeFileIndex].type === 'code' || files[activeFileIndex].type === 'context') && editor) {
 			files[activeFileIndex].content = editor.getValue();
 		}
 		
 		activeFileIndex = index;
 		
-		// If switching to a code tab
-		if (files[activeFileIndex].type === 'code') {
+		// If switching to a code or context tab
+		if (files[activeFileIndex].type === 'code' || files[activeFileIndex].type === 'context') {
 			if (!files[activeFileIndex].model) {
 				files[activeFileIndex].model = monaco.editor.createModel(
 					files[activeFileIndex].content,
-					'python'
+					files[activeFileIndex].type === 'context' ? 'markdown' : 'python'
 				);
 			}
 			editor.setModel(files[activeFileIndex].model || null);
+			updateEditorTheme();
 			
 			// Ensure the editor updates its layout
 			requestAnimationFrame(() => {
@@ -471,12 +473,135 @@ print(df)`;
 		}
 	}
 
+	async function addDatasetContext(dataset: { name: string; path: string }) {
+		// Create new file for context
+		const contextFileName = `${dataset.name} Context`;
+		
+		// Check if we already have this tab open
+		const existingIndex = files.findIndex(f => f.name === contextFileName);
+		if (existingIndex !== -1) {
+			activeFileIndex = existingIndex;
+			return;
+		}
+
+		// Fetch existing context if any
+		try {
+			const response = await fetch(`http://localhost:8000/api/get-dataset-context/${dataset.name}`);
+			const data = await response.json();
+			
+			const initialContent = data.exists ? data.content : `# ${dataset.name} Dataset Context\n\nAdd your dataset documentation here...\n`;
+			
+			// Create new file
+			files = [...files, { 
+				name: contextFileName, 
+				content: initialContent,
+				type: 'context',
+				datasetPath: dataset.path,
+				datasetName: dataset.name // Add this to track which dataset this context belongs to
+			}];
+			activeFileIndex = files.length - 1;
+			
+			if (monaco && editor) {
+				const model = monaco.editor.createModel(
+					files[activeFileIndex].content,
+					'markdown'
+				);
+				files[activeFileIndex].model = model;
+				editor.setModel(files[activeFileIndex].model || null);
+				editor.updateOptions({ theme: 'markdown-theme' });
+			}
+		} catch (error) {
+			console.error('Error loading dataset context:', error);
+			// Show error in console
+			consoleEditor.setValue('🔴 Error: Failed to load dataset context');
+		}
+	}
+
+	// Add a function to update editor theme based on file type
+	function updateEditorTheme() {
+		if (editor && files[activeFileIndex]) {
+			const theme = files[activeFileIndex].type === 'context' ? 'markdown-theme' : 'my-theme';
+			editor.updateOptions({ theme });
+		}
+	}
+
+	async function saveDatasetContext() {
+		const currentFile = files[activeFileIndex];
+		if (currentFile.type !== 'context' || !editor) return;
+
+		const content = editor.getValue();
+		const datasetName = currentFile.datasetName;
+
+		try {
+			const response = await fetch('http://localhost:8000/api/save-dataset-context', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					dataset_name: datasetName,
+					content: content
+				})
+			});
+
+			const result = await response.json();
+			
+			if (result.success) {
+				consoleEditor.setValue('✅ Context saved successfully');
+			} else {
+				throw new Error(result.message || 'Failed to save context');
+			}
+		} catch (error) {
+			console.error('Error saving context:', error);
+			consoleEditor.setValue('🔴 Error: Failed to save context');
+		}
+	}
+
 	onMount(async () => {
 		monaco = (await import('./monaco')).default;
 
-		// Remove Python language features registration
-		// const { registerPythonCompletions } = await import('$lib/pythonLanguageFeatures');
-		// registerPythonCompletions(monaco);
+		// Add markdown configuration
+		monaco.languages.register({ id: 'markdown' });
+		monaco.languages.setMonarchTokensProvider('markdown', {
+			tokenizer: {
+				root: [
+					[/^##+\s.*/, 'heading'],
+					[/\*\*([^*]|\*[^*])*\*\*/, 'strong'],
+					[/\_\_([^_]|\_[^_])*\_\_/, 'strong'],
+					[/\*([^*]|\*[^*])*\*/, 'emphasis'],
+					[/\_([^_]|\_[^_])*\_/, 'emphasis'],
+					[/\`[^`]*\`/, 'inline-code'],
+					[/\`\`\`[\s\S]*?\`\`\`/, 'code-block'],
+					[/\[([^\]]+)\]\(([^\)]+)\)/, 'link'],
+					[/\!\[([^\]]+)\]\(([^\)]+)\)/, 'image'],
+					[/\>.*$/, 'quote'],
+					[/\-\s.*$/, 'list'],
+					[/\*\s.*$/, 'list'],
+					[/\d+\.\s.*$/, 'list'],
+				]
+			}
+		});
+
+		// Configure markdown theme
+		monaco.editor.defineTheme('markdown-theme', {
+			base: 'vs-dark',
+			inherit: true,
+			rules: [
+				{ token: 'heading', foreground: '569CD6', fontStyle: 'bold' },
+				{ token: 'strong', foreground: 'CE9178', fontStyle: 'bold' },
+				{ token: 'emphasis', foreground: 'CE9178', fontStyle: 'italic' },
+				{ token: 'inline-code', foreground: '6A9955' },
+				{ token: 'code-block', foreground: '6A9955' },
+				{ token: 'link', foreground: '569CD6' },
+				{ token: 'image', foreground: '569CD6' },
+				{ token: 'quote', foreground: '608B4E' },
+				{ token: 'list', foreground: 'D4D4D4' }
+			],
+			colors: {
+				'editor.background': '#1a1a1a',
+				'editor.foreground': '#D4D4D4'
+			}
+		});
 
 		monaco.editor.defineTheme('my-theme', {
 			base: 'vs-dark',
@@ -646,6 +771,13 @@ print(df)`;
 		editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
 			isSidebarCollapsed = !isSidebarCollapsed;
 		});
+
+		// Add save shortcut for context files
+		editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+			if (files[activeFileIndex]?.type === 'context') {
+				saveDatasetContext();
+			}
+		});
 	});
 
 	onDestroy(() => {
@@ -791,7 +923,7 @@ print(df)`;
 					<!-- Editor container always exists but conditionally visible -->
 					<div 
 						class="editor-container" 
-						style:display={files[activeFileIndex].type === 'code' ? 'block' : 'none'}
+						style:display={files[activeFileIndex].type === 'code' || files[activeFileIndex].type === 'context' ? 'block' : 'none'}
 						bind:this={editorContainer}
 					/>
 					
@@ -932,9 +1064,22 @@ print(df)`;
 													Analyze Dataset
 												</button>
 												<button
+													class="w-full px-4 py-2 text-sm text-left text-gray-400 hover:bg-[#333333] hover:text-white transition-colors flex items-center gap-2"
+													on:click={() => {
+														addDatasetContext(dataset);
+														showDropdownForDataset = null;
+													}}
+												>
+													<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+														<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+														<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+													</svg>
+													Add Context
+												</button>
+												<button
 													class="w-full px-4 py-2 text-sm text-left text-red-400 hover:bg-[#333333] hover:text-red-300 transition-colors flex items-center gap-2"
 													on:click={() => {
-														if (confirm('Are you sure you want to delete this dataset?')) {
+														if (confirm('Are you sure you want to delete this dataset? This will also delete any associated context files.')) {
 															deleteDataset(dataset.path);
 														}
 														showDropdownForDataset = null;
