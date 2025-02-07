@@ -295,6 +295,12 @@ console.log('Doubled numbers:', doubled);`
 					// Handle standard output
 					if (result.output && result.output.trim()) {
 						output += result.output;
+						
+						// Check if this was a successful save operation
+						if (result.output.includes('File saved successfully')) {
+							// Refresh the datasets list
+							await loadDatasets();
+						}
 					} else if (result.stdout && result.stdout.trim()) {
 						output += result.stdout;
 					}
@@ -453,6 +459,15 @@ print(df)`;
 		const target = event.target as HTMLElement;
 		if (!target.closest('.dataset-dropdown')) {
 			showDropdownForDataset = null;
+		}
+	}
+
+	// Add this new function to handle the keyboard shortcut
+	function handleKeyboardShortcut(event: KeyboardEvent) {
+		// Check if it's Command+D (Mac) or Ctrl+D (Windows)
+		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'd') {
+			event.preventDefault(); // Prevent default browser behavior
+			isSidebarCollapsed = !isSidebarCollapsed;
 		}
 	}
 
@@ -623,6 +638,14 @@ print(df)`;
 		
 		// Add click outside listener for dropdowns
 		document.addEventListener('click', handleClickOutside);
+
+		// Add global keyboard shortcut listener
+		window.addEventListener('keydown', handleKeyboardShortcut);
+
+		// Add keyboard shortcut to Monaco editor
+		editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
+			isSidebarCollapsed = !isSidebarCollapsed;
+		});
 	});
 
 	onDestroy(() => {
@@ -632,6 +655,9 @@ print(df)`;
 		editor?.dispose();
 		consoleEditor?.dispose();
 		document.removeEventListener('click', handleClickOutside);
+
+		// Remove global keyboard shortcut listener
+		window.removeEventListener('keydown', handleKeyboardShortcut);
 	});
 
 	function startResize(e: MouseEvent) {
@@ -700,6 +726,10 @@ print(df)`;
 		loadDatasets(); // Refresh dataset list after import
 	}
 </script>
+
+<svelte:head>
+	<title>Mako</title>
+</svelte:head>
 
 <div class="flex-1 flex flex-col overflow-hidden">
 	<div class="flex h-screen bg-[#1a1a1a]">

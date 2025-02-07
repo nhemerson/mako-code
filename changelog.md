@@ -3,6 +3,11 @@
 ## [Unreleased] - 2025-02-05
 
 ### Added
+- Added keyboard shortcut to toggle sidebar (2025-02-06)
+  - Command+D (Mac) or Ctrl+D (Windows) to toggle sidebar visibility
+  - Works globally across the entire application
+  - Functions within Monaco editors and outside
+  - Maintains shortcut functionality regardless of focus state
 - Drag-and-drop functionality for editor tabs
   - Tabs can be reordered by dragging and dropping
   - Visual feedback during drag operations
