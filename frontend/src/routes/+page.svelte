@@ -4,6 +4,7 @@
 	import { setHasUnsavedChanges } from '$lib/stores/navigation';
 	import DataImportModal from '$lib/components/DataImportModal.svelte';
 	import DataframeView from '$lib/components/DataframeView.svelte';
+	import EnhancedDatasetView from '$lib/components/EnhancedDatasetView.svelte';
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
 	let consoleEditor: Monaco.editor.IStandaloneCodeEditor;
@@ -79,7 +80,7 @@ console.log('Doubled numbers:', doubled);`
 		content: string;
 		model?: Monaco.editor.ITextModel;
 		type: 'code' | 'dataset' | 'context';
-		datasetPath: string | null;  // null for code files, string for dataset files
+		datasetPath: string;
 		datasetName?: string;
 	}
 
@@ -88,7 +89,7 @@ console.log('Doubled numbers:', doubled);`
 			name: 'main.py', 
 			content: '# Python example\nprint("Hello World!")', 
 			type: 'code',
-			datasetPath: null 
+			datasetPath: '' 
 		},
 	];
 	let activeFileIndex = 0;
@@ -105,7 +106,7 @@ console.log('Doubled numbers:', doubled);`
 			name: file.name,
 			content: file.content,
 			type: file.type,
-			datasetPath: file.datasetPath
+			datasetPath: file.datasetPath || ''
 		}));
 		
 		localStorage.setItem('editorFiles', JSON.stringify(filesForStorage));
@@ -121,7 +122,12 @@ console.log('Doubled numbers:', doubled);`
 			const savedEditorHeight = localStorage.getItem('editorHeight');
 			
 			if (savedFiles) {
-				files = JSON.parse(savedFiles);
+				const parsedFiles = JSON.parse(savedFiles);
+				files = parsedFiles.map((file: any) => ({
+					...file,
+					datasetPath: file.datasetPath || ''
+				}));
+				
 				if (savedActiveIndex) {
 					activeFileIndex = parseInt(savedActiveIndex, 10);
 				}
@@ -188,12 +194,13 @@ console.log('Doubled numbers:', doubled);`
 
 	function addNewFile() {
 		const newFileName = `file${files.length + 1}.py`;
-		files = [...files, { 
+		const newFile: EditorFile = { 
 			name: newFileName, 
 			content: '# New file', 
 			type: 'code',
-			datasetPath: null 
-		}];
+			datasetPath: '' 
+		};
+		files = [...files, newFile];
 		activeFileIndex = files.length - 1;
 		
 		if (monaco && editor) {
@@ -383,12 +390,14 @@ console.log('Doubled numbers:', doubled);`
 		}
 
 		// Add new tab
-		files = [...files, { 
+		const newFile: EditorFile = { 
 			name: datasetName,
 			content: '',  // Dataset tabs don't need content
 			type: 'dataset',
-			datasetPath
-		}];
+			datasetPath,
+			datasetName
+		};
+		files = [...files, newFile];
 		activeFileIndex = files.length - 1;
 	}
 
@@ -929,7 +938,10 @@ print(df)`;
 					
 					<!-- Dataset view only renders when needed -->
 					{#if files[activeFileIndex].type === 'dataset' && files[activeFileIndex].datasetPath}
-						<DataframeView datasetPath={files[activeFileIndex].datasetPath} />
+						<EnhancedDatasetView 
+							datasetPath={files[activeFileIndex].datasetPath} 
+							datasetName={files[activeFileIndex].name.replace('.parquet', '')}
+						/>
 					{:else if files[activeFileIndex].type === 'dataset'}
 						<div class="flex items-center justify-center h-full text-red-400">
 							Error: Dataset path not specified

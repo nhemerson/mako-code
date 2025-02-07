@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, Form, Query, Request
+from fastapi import FastAPI, HTTPException, UploadFile, Form, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
 import sys
@@ -597,6 +597,89 @@ async def get_dataset_context(dataset_name: str):
             content = f.read()
         
         return {"content": content, "exists": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class DatasetRequest(BaseModel):
+    path: str
+    page: int
+    rows_per_page: int
+
+class DatasetResponse(BaseModel):
+    success: bool
+    data: List[Dict]
+    columns: List[str]
+    total_rows: int
+    error: Optional[str] = None
+
+@app.post("/api/get-dataset-data")
+async def get_dataset_data(request: DatasetRequest) -> DatasetResponse:
+    try:
+        # Read the dataset
+        df = pl.read_parquet(request.path)
+        total_rows = len(df)
+        
+        # Calculate slice indices
+        start_idx = (request.page - 1) * request.rows_per_page
+        end_idx = start_idx + request.rows_per_page
+        
+        # Get the slice of data
+        df_slice = df.slice(start_idx, request.rows_per_page)
+        
+        # Convert to dict format
+        data = df_slice.to_dicts()
+        columns = df.columns
+        
+        return DatasetResponse(
+            success=True,
+            data=data,
+            columns=columns,
+            total_rows=total_rows
+        )
+    except Exception as e:
+        return DatasetResponse(
+            success=False,
+            data=[],
+            columns=[],
+            total_rows=0,
+            error=str(e)
+        )
+
+@app.get("/api/get-dataset-schema/{dataset_name}")
+async def get_dataset_schema(dataset_name: str):
+    try:
+        # Construct the path to the dataset
+        dataset_path = f"./data/local_storage/{dataset_name}.parquet"
+        
+        # Read the dataset
+        df = pl.read_parquet(dataset_path)
+        
+        # Get schema information
+        schema = [
+            {"column": col, "type": str(df.schema[col])}
+            for col in df.columns
+        ]
+        
+        return {"success": True, "schema": schema}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/get-context")
+async def get_context(path: str):
+    try:
+        # Ensure we're looking in the local_storage directory
+        if not path.startswith("data/local_storage/"):
+            path = f"data/local_storage/{path}"
+        
+        context_path = Path(path)
+        
+        if not context_path.exists():
+            return Response(status_code=404)
+            
+        with open(context_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        return content
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

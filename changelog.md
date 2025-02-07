@@ -3,6 +3,11 @@
 ## [Unreleased] - 2025-02-05
 
 ### Added
+- Fixed dataset context display functionality (2025-02-06)
+  - Improved context loading and display in dataset view
+  - Correctly shows context content when available
+  - Better handling of loading states and error cases
+  - Seamless integration with existing context editor
 - Added automatic context file cleanup (2025-02-07)
   - Context files (.md) are now automatically deleted when their associated dataset is removed
   - Updated deletion confirmation message to inform users about context file removal
@@ -19,6 +24,13 @@
   - Syntax highlighting for markdown
   - Keyboard shortcut (Cmd/Ctrl + S) to save context
   - Context files (.md) stored with datasets for easy reference
+- Improved DataFrame view with client-side pagination and formatting (2025-02-06)
+  - Enhanced data formatting with proper handling of numeric, boolean, and null values
+  - Client-side pagination for better performance with 100 rows per page
+  - Improved error handling and loading states
+  - Better visual styling with alternating row colors
+  - Right-aligned numeric values in monospace font
+  - Sticky headers and improved table borders
 - Drag-and-drop functionality for editor tabs
   - Tabs can be reordered by dragging and dropping
   - Visual feedback during drag operations
