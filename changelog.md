@@ -36,6 +36,11 @@
   - Save it as a Parquet file in the local dataset folder 
   - The method ensures the dataset directory exists before saving 
   - Provides console output to confirm the save operation and file existence.
+- Added Monaco editor state persistence across sessions (2025-02-06)
+  - Editor tabs and their contents are now preserved when closing/reopening
+  - Active tab selection is maintained
+  - Editor split pane position is remembered
+  - State is automatically saved on changes and tab switches
 
 ### Fixed
 - Issue where Monaco Editor would lose state when switching to dataset tabs

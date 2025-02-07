@@ -92,6 +92,57 @@ console.log('Doubled numbers:', doubled);`
 	];
 	let activeFileIndex = 0;
 
+	// Save editor state to localStorage
+	function saveEditorState() {
+		if (editor && files[activeFileIndex]?.type === 'code') {
+			// Update current file content before saving
+			files[activeFileIndex].content = editor.getValue();
+		}
+		
+		// Create a simplified version of files without Monaco models
+		const filesForStorage = files.map(file => ({
+			name: file.name,
+			content: file.content,
+			type: file.type,
+			datasetPath: file.datasetPath
+		}));
+		
+		localStorage.setItem('editorFiles', JSON.stringify(filesForStorage));
+		localStorage.setItem('activeFileIndex', activeFileIndex.toString());
+		localStorage.setItem('editorHeight', editorHeight);
+	}
+
+	// Restore editor state from localStorage
+	function restoreEditorState() {
+		try {
+			const savedFiles = localStorage.getItem('editorFiles');
+			const savedActiveIndex = localStorage.getItem('activeFileIndex');
+			const savedEditorHeight = localStorage.getItem('editorHeight');
+			
+			if (savedFiles) {
+				files = JSON.parse(savedFiles);
+				if (savedActiveIndex) {
+					activeFileIndex = parseInt(savedActiveIndex, 10);
+				}
+				if (savedEditorHeight) {
+					editorHeight = savedEditorHeight;
+				}
+				
+				// If Monaco is initialized, set up the model for the active file
+				if (monaco && editor && files[activeFileIndex]?.type === 'code') {
+					const model = monaco.editor.createModel(
+						files[activeFileIndex].content,
+						'python'
+					);
+					files[activeFileIndex].model = model;
+					editor.setModel(model);
+				}
+			}
+		} catch (error) {
+			console.error('Error restoring editor state:', error);
+		}
+	}
+
 	function handleDragStart(index: number, event: DragEvent) {
 		draggedTabIndex = index;
 		if (event.dataTransfer) {
@@ -179,6 +230,9 @@ console.log('Doubled numbers:', doubled);`
 				editor?.layout();
 			});
 		}
+
+		// Save state after switching files
+		saveEditorState();
 	}
 
 	function removeFile(index: number) {
@@ -468,18 +522,24 @@ print(df)`;
 			executeCode();
 		});
 		
-		// Track changes
+		// Track changes and save state
 		editor.onDidChangeModelContent(() => {
 			setHasUnsavedChanges(true);
+			saveEditorState();
 		});
+
+		// Restore editor state before creating initial model
+		restoreEditorState();
 		
-		// Create model for initial file
-		const model = monaco.editor.createModel(
-			files[0].content,
-			'python'
-		);
-		files[0].model = model;
-		editor.setModel(files[0].model || null);
+		// Only create initial model if no saved state was restored
+		if (!files[activeFileIndex]?.model) {
+			const model = monaco.editor.createModel(
+				files[activeFileIndex].content,
+				'python'
+			);
+			files[activeFileIndex].model = model;
+			editor.setModel(files[activeFileIndex].model || null);
+		}
 
 		consoleEditor = monaco.editor.create(consoleContainer, {
 			automaticLayout: true,
@@ -566,6 +626,8 @@ print(df)`;
 	});
 
 	onDestroy(() => {
+		// Save state before destroying
+		saveEditorState();
 		monaco?.editor.getModels().forEach((model: any) => model.dispose());
 		editor?.dispose();
 		consoleEditor?.dispose();
