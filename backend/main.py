@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, Form, Query
+from fastapi import FastAPI, HTTPException, UploadFile, Form, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
 import sys
@@ -7,7 +7,7 @@ import contextlib
 import math
 import ast
 import polars as pl
-from functions_mako.ingestion import process_uploaded_file, DATASET_DIR
+from functions.ingestion import process_uploaded_file, DATASET_DIR
 import ruff
 import tempfile
 from typing import List, Dict, Optional, Union
@@ -15,6 +15,7 @@ from pathlib import Path
 import subprocess
 import os
 from dotenv import load_dotenv
+import json
 
 app = FastAPI()
 
@@ -103,7 +104,7 @@ STDLIB_MODULES = {
 # Add GCS and BigQuery modules to allowed modules
 ALLOWED_EXTERNAL_MODULES = {
     'polars',
-    'functions_mako',
+    'functions',
     'google.cloud',
     'google.cloud.storage',
     'google.cloud.bigquery',
@@ -173,12 +174,13 @@ def create_safe_globals():
     safe_globals['polars'] = pl
     safe_globals['pl'] = pl  # Allow both 'polars' and 'pl' as module names
 
-    # Add functions_mako.ingestion module with read_parquet
-    from functions_mako import ingestion
-    safe_globals['functions_mako'] = type('SafeMako', (), {
+    # Add functions.ingestion module with read_parquet
+    from functions import ingestion, mako
+    safe_globals['functions'] = type('SafeMako', (), {
         'ingestion': type('SafeIngestion', (), {
             'read_parquet': pl.read_parquet
-        })
+        }),
+        'mako': mako  # Add the entire mako module
     })
 
     # Add built-in functions
@@ -536,22 +538,65 @@ async def list_datasets():
 
 @app.post("/api/delete-dataset")
 async def delete_dataset(request: dict):
-    """Delete a dataset from local storage"""
+    """Delete a dataset and its context file from local storage"""
     try:
         # Get the filename from the path
         path = request["path"]
         if path.startswith("local_storage/"):
             path = path[len("local_storage/"):]
         
-        # Construct the correct path relative to the current directory
+        # Construct the correct paths relative to the current directory
         file_path = Path("./data/local_storage") / path
-        print(f"Attempting to delete file at: {file_path}")
+        # Get the context file path by replacing .parquet with .md
+        context_path = file_path.with_suffix('.md')
+        
+        print(f"Attempting to delete dataset at: {file_path}")
+        print(f"Attempting to delete context at: {context_path}")
         
         if not file_path.exists():
             raise HTTPException(status_code=404, detail=f"Dataset not found: {file_path}")
         
+        # Delete both files
         file_path.unlink()
+        if context_path.exists():
+            context_path.unlink()
+            
         return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/save-dataset-context")
+async def save_dataset_context(request: Request):
+    data = await request.json()
+    dataset_name = data.get("dataset_name")
+    context_content = data.get("content")
+    
+    if not dataset_name or context_content is None:
+        raise HTTPException(status_code=400, detail="Missing dataset name or content")
+    
+    try:
+        context_path = Path("data/local_storage") / f"{dataset_name}.md"
+        context_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(context_path, "w", encoding="utf-8") as f:
+            f.write(context_content)
+        
+        return {"success": True, "message": "Context saved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/get-dataset-context/{dataset_name}")
+async def get_dataset_context(dataset_name: str):
+    try:
+        context_path = Path("data/local_storage") / f"{dataset_name}.md"
+        
+        if not context_path.exists():
+            return {"content": "", "exists": False}
+        
+        with open(context_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        return {"content": content, "exists": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

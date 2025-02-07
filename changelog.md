@@ -3,11 +3,22 @@
 ## [Unreleased] - 2025-02-05
 
 ### Added
+- Added automatic context file cleanup (2025-02-07)
+  - Context files (.md) are now automatically deleted when their associated dataset is removed
+  - Updated deletion confirmation message to inform users about context file removal
+  - Prevents orphaned context files from remaining in storage
 - Added keyboard shortcut to toggle sidebar (2025-02-06)
   - Command+D (Mac) or Ctrl+D (Windows) to toggle sidebar visibility
   - Works globally across the entire application
   - Functions within Monaco editors and outside
   - Maintains shortcut functionality regardless of focus state
+- Added dataset context documentation feature (2025-02-06)
+  - New "Add Context" option in dataset menu
+  - Markdown editor for dataset documentation
+  - Auto-saves context files alongside datasets
+  - Syntax highlighting for markdown
+  - Keyboard shortcut (Cmd/Ctrl + S) to save context
+  - Context files (.md) stored with datasets for easy reference
 - Drag-and-drop functionality for editor tabs
   - Tabs can be reordered by dragging and dropping
   - Visual feedback during drag operations

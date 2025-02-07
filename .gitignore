@@ -49,9 +49,7 @@ backend/logs/
 *.log
 backend/data/datasets/
 backend/__pycache__/
-backend/functions_mako/__pycache__/
-backend/functions_mako/*.pyc
-backend/.ruff_cache/
-backend/tests/__pycache__/
+backend/functions/__pycache__/
+backend/functions/*.pyc
 directions/prompts.md
 directions/repos.md
