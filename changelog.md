@@ -73,3 +73,19 @@
 ### Fixed
 - Issue where Monaco Editor would lose state when switching to dataset tabs
 - Improved tab switching performance by reusing editor instance
+
+## [0.2.0] - 2024-02-08
+
+### Added
+- Combined startup script (`mako`) for easier development setup
+- Automatic browser opening on startup
+- Integrated uv package manager for Python dependencies
+
+### Changed
+- Switched from pip to uv for Python package management
+- Improved version checking for Python and Node.js
+- Updated documentation with new startup instructions
+
+### Fixed
+- Python version detection in startup script
+- Node.js version comparison logic
