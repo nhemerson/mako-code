@@ -1,0 +1,42 @@
+# Mako Development Server Commands
+
+## Quick Start (Combined Frontend & Backend)
+To start both servers with a single command:
+
+/mako dev
+
+This will:
+1. Start the FastAPI backend server on http://localhost:8000
+2. Start the SvelteKit frontend server on http://localhost:5173
+3. Open http://localhost:5173 in your default browser
+
+## Manual Startup (Separate Commands)
+
+### Start Backend Server
+Navigate to the backend directory and run:
+
+cd backend
+uv venv venv # Create virtual environment (first time only)
+source venv/bin/activate # On Windows use: venv\Scripts\activate
+uv pip install -r requirements.txt # Install dependencies (first time only)
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+cd frontend
+npm install # Install dependencies (first time only)
+npm run dev
+
+## Development URLs
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- Backend API Docs: http://localhost:8000/docs
+
+## Requirements
+- Python 3.8+
+- Node.js 16+
+- npm 7+
+- uv (Automatically installed by startup script)
+
+## Notes
+- The combined startup script (`./mako dev`) will automatically install uv and handle all dependency management
+- uv is used for faster Python package management and better dependency resolution
+- First-time startup may take longer as it installs dependencies
