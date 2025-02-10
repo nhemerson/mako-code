@@ -6,7 +6,7 @@ export function registerPythonCompletions(monaco: any) {
     
     monaco.languages.registerCompletionItemProvider('python', {
         provideCompletionItems: (model: any, position: any) => {
-            const suggestions = [];
+            const suggestions: Monaco.languages.CompletionItem[] = [];
             const word = model.getWordUntilPosition(position);
             const range = {
                 startLineNumber: position.lineNumber,
@@ -17,7 +17,7 @@ export function registerPythonCompletions(monaco: any) {
 
             // Common Python imports
             const imports = ['import', 'from', 'as'];
-            const commonModules = ['polars', 'pandas', 'numpy', 'matplotlib'];
+            const commonModules = ['polars'];
 
             // Only add suggestions that haven't been added yet
             [...imports, ...commonModules].forEach(item => {

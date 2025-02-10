@@ -1,5 +1,30 @@
 # Changelog
 
+## [Unreleased] - 2025-02-10
+
+### Added
+- Added "Restore Closed Tab" functionality
+  - Command+Shift+R (Mac) or Ctrl+Shift+R (Windows) to restore most recently closed tab
+  - Maintains tab history for up to 10 recently closed tabs
+  - Preserves tab content and type (code, dataset, or context)
+  - Works globally across the entire application
+
+## [Unreleased] - 2024-02-08
+
+### Added
+- Combined startup script (`mako`) for easier development setup
+- Automatic browser opening on startup
+- Integrated uv package manager for Python dependencies
+
+### Changed
+- Switched from pip to uv for Python package management
+- Improved version checking for Python and Node.js
+- Updated documentation with new startup instructions
+
+### Fixed
+- Python version detection in startup script
+- Node.js version comparison logic
+
 ## [Unreleased] - 2025-02-05
 
 ### Added
@@ -73,19 +98,3 @@
 ### Fixed
 - Issue where Monaco Editor would lose state when switching to dataset tabs
 - Improved tab switching performance by reusing editor instance
-
-## [0.2.0] - 2024-02-08
-
-### Added
-- Combined startup script (`mako`) for easier development setup
-- Automatic browser opening on startup
-- Integrated uv package manager for Python dependencies
-
-### Changed
-- Switched from pip to uv for Python package management
-- Improved version checking for Python and Node.js
-- Updated documentation with new startup instructions
-
-### Fixed
-- Python version detection in startup script
-- Node.js version comparison logic

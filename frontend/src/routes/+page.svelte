@@ -5,6 +5,7 @@
 	import DataImportModal from '$lib/components/DataImportModal.svelte';
 	import DataframeView from '$lib/components/DataframeView.svelte';
 	import EnhancedDatasetView from '$lib/components/EnhancedDatasetView.svelte';
+	import { closedTabs } from '$lib/stores/editorStore';
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
 	let consoleEditor: Monaco.editor.IStandaloneCodeEditor;
@@ -248,6 +249,16 @@ console.log('Doubled numbers:', doubled);`
 		// Don't allow removing the last file
 		if (files.length <= 1) return;
 
+		// Save the file state before removing it
+		const fileToClose = files[index];
+		closedTabs.addClosedTab({
+			name: fileToClose.name,
+			content: fileToClose.model ? fileToClose.model.getValue() : fileToClose.content,
+			type: fileToClose.type,
+			datasetPath: fileToClose.datasetPath,
+			datasetName: fileToClose.datasetName
+		});
+
 		// Dispose of the model if it exists
 		if (files[index].model) {
 			files[index].model.dispose();
@@ -452,7 +463,7 @@ print(df)`;
 			name: `analyze_${dataset.name}.py`, 
 			content: analysisCode, 
 			type: 'code',
-			datasetPath: null 
+			datasetPath: '' 
 		}];
 		activeFileIndex = files.length - 1;
 		
@@ -563,6 +574,43 @@ print(df)`;
 		} catch (error) {
 			console.error('Error saving context:', error);
 			consoleEditor.setValue('🔴 Error: Failed to save context');
+		}
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		// Check for Command/Ctrl + Shift + R
+		if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'r') {
+			event.preventDefault(); // Prevent default browser behavior
+			restoreLastClosedTab();
+		}
+	}
+
+	async function restoreLastClosedTab() {
+		const lastTab = closedTabs.restoreLastTab();
+		if (!lastTab) return; // No tabs to restore
+
+		// Create new file object
+		const newFile = {
+			name: lastTab.name,
+			content: lastTab.content,
+			type: lastTab.type,
+			datasetPath: lastTab.datasetPath,
+			datasetName: lastTab.datasetName
+		};
+
+		// Add the file
+		files = [...files, newFile];
+		activeFileIndex = files.length - 1;
+
+		// Set up model for code or context files
+		if ((lastTab.type === 'code' || lastTab.type === 'context') && monaco && editor) {
+			const model = monaco.editor.createModel(
+				lastTab.content,
+				lastTab.type === 'context' ? 'markdown' : 'python'
+			);
+			files[activeFileIndex].model = model;
+			editor.setModel(model);
+			updateEditorTheme();
 		}
 	}
 
@@ -1121,6 +1169,8 @@ print(df)`;
 	show={showDataImportModal}
 	onClose={handleDataImportClose}
 />
+
+<svelte:window on:keydown={handleKeydown}/>
 
 <style>
 	:global(body) {

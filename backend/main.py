@@ -1,13 +1,13 @@
 from fastapi import FastAPI, HTTPException, UploadFile, Form, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 import sys
 from io import StringIO
 import contextlib
 import math
 import ast
 import polars as pl
-from functions.ingestion import process_uploaded_file, DATASET_DIR
+from functions.ingestion import DATASET_DIR
 import ruff
 import tempfile
 from typing import List, Dict, Optional, Union
@@ -36,8 +36,9 @@ if not os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
 class CodeRequest(BaseModel):
     code: str = Field(..., description="Python code to execute")
     
-    @validator('code')
-    def validate_code_safety(cls, v):
+    @field_validator('code')
+    @classmethod
+    def validate_code_safety(cls, v: str) -> str:
         # Instead of raising an error, return the code
         # The safety check will be done in the endpoint
         return v
@@ -105,10 +106,8 @@ STDLIB_MODULES = {
 ALLOWED_EXTERNAL_MODULES = {
     'polars',
     'functions',
-    'google.cloud',
-    'google.cloud.storage',
-    'google.cloud.bigquery',
-    'google.cloud.bigquery_storage'
+    'datafusion',
+    'pyarrow'
 }
 
 def is_safe_code(code: str) -> tuple[bool, str]:
@@ -125,14 +124,14 @@ def is_safe_code(code: str) -> tuple[bool, str]:
                     if (module_name in STDLIB_MODULES or 
                         any(name.name.startswith(allowed) for allowed in ALLOWED_EXTERNAL_MODULES)):
                         continue
-                    return False, f"Unsafe import detected: {name.name} - only standard library modules, polars, and Google Cloud modules are allowed"
+                    return False, f"Unsafe import detected: {name.name} - only standard library modules, polars and mako functions are allowed"
             if isinstance(node, ast.ImportFrom):
                 # Allow standard library modules, polars, and GCS modules
                 module_name = node.module.split('.')[0] if node.module else ''
                 if (module_name in STDLIB_MODULES or 
                     any(node.module.startswith(allowed) for allowed in ALLOWED_EXTERNAL_MODULES)):
                     continue
-                return False, f"Unsafe import detected: {node.module} - only standard library modules, polars, and Google Cloud modules are allowed"
+                return False, f"Unsafe import detected: {node.module} - only standard library modules, polars and mako functions are allowed"
             # Check for unsafe calls
             if isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name):
@@ -172,10 +171,15 @@ def create_safe_globals():
     # Add polars module - expose the entire module
     import polars as pl
     safe_globals['polars'] = pl
-    safe_globals['pl'] = pl  # Allow both 'polars' and 'pl' as module names
+
+    import datafusion
+    safe_globals['datafusion'] = datafusion
+
+    import pyarrow
+    safe_globals['pyarrow'] = pyarrow
 
     # Add functions.ingestion module with read_parquet
-    from functions import ingestion, mako
+    from functions import mako
     safe_globals['functions'] = type('SafeMako', (), {
         'ingestion': type('SafeIngestion', (), {
             'read_parquet': pl.read_parquet

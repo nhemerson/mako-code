@@ -11,3 +11,4 @@ python-dotenv==1.0.0
 google-cloud-storage==3.0.0
 google-cloud-bigquery-storage==2.26.0
 urllib3<2.0.0  # Pin to version 1.x to avoid SSL warnings
+datafusion==44.0.0
