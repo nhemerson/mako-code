@@ -1,6 +1,6 @@
 # Mako Architecture Overview
 
-Mako is a modern web-based data analysis and code execution platform that combines an interactive code editor with data management capabilities. It provides a seamless environment for writing, executing, and analyzing code alongside data visualization features.
+Mako is a modern web-based analytics platform that combines an interactive code editor with data management capabilities. It provides a seamless environment for writing, executing, and analyzing code alongside data visualization features.
 
 ## Key Features
 - Interactive code editor with syntax highlighting and multiple language support
@@ -17,7 +17,7 @@ The frontend is built using SvelteKit and provides a modern, responsive interfac
 ### Core Components
 - **Code Editor**: Powered by Monaco Editor (same as VS Code), providing:
   - Syntax highlighting
-  - Multiple language support (Python, SQL, JavaScript, Rust)
+  - Multiple language support (Python, SQL)
   - Tab management for multiple files
   - Keyboard shortcuts (e.g., ⌘ + Enter to run code)
 
