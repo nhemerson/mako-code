@@ -106,7 +106,6 @@ STDLIB_MODULES = {
 ALLOWED_EXTERNAL_MODULES = {
     'polars',
     'functions',
-    'datafusion',
     'pyarrow'
 }
 
@@ -171,9 +170,6 @@ def create_safe_globals():
     # Add polars module - expose the entire module
     import polars as pl
     safe_globals['polars'] = pl
-
-    import datafusion
-    safe_globals['datafusion'] = datafusion
 
     import pyarrow
     safe_globals['pyarrow'] = pyarrow

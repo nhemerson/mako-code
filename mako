@@ -33,25 +33,40 @@ start_backend() {
     echo "Starting backend server..."
     cd backend
     
+    # Kill any existing uvicorn processes
+    echo "Checking for existing backend processes..."
+    pkill -f "uvicorn main:app" || true
+    
     # Create virtual environment if it doesn't exist
-    if [ ! -d "venv" ]; then
+    if [ ! -d ".venv" ]; then
         echo "Creating Python virtual environment..."
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        uv venv venv
+        curl -Lf https://astral.sh/uv/install.sh | sh
+        python3 -m venv .venv
+        source .venv/bin/activate
+        curl -Lf https://astral.sh/uv/install.sh | sh
     fi
     
     # Activate virtual environment
-    source venv/bin/activate || source venv/Scripts/activate
-    
-    # Install requirements if needed
-    if [ ! -f "venv/installed" ]; then
-        echo "Installing Python dependencies..."
-        uv pip install -r requirements.txt
-        touch venv/installed
+    if [ -f ".venv/Scripts/activate" ]; then
+        source .venv/Scripts/activate  # Windows
+    else
+        source .venv/bin/activate      # Unix/MacOS
     fi
     
+    # Always check and install requirements
+    echo "Checking and updating Python dependencies..."
+    rm -f .venv/installed  # Remove the installed marker
+    uv pip install --force-reinstall -r requirements.txt
+    touch .venv/installed
+    
+    # Small delay to ensure previous process is fully terminated
+    sleep 2
+    
     # Start the backend server
-    uvicorn main:app --reload --host 0.0.0.0 --port 8000 &
+    # Ensure we're in the virtual environment before starting uvicorn
+    source .venv/bin/activate
+    echo "Starting uvicorn with packages from $(which python)"
+    .venv/bin/uvicorn main:app --reload --host 0.0.0.0 --port 8000 &
     cd ..
 }
 
@@ -87,6 +102,12 @@ open_browser() {
 # Main script
 case "$1" in
     "dev")
+        # Kill any existing processes first
+        echo "Stopping any existing processes..."
+        pkill -f "uvicorn main:app" || true
+        pkill -f "node.*vite" || true
+        sleep 2
+        
         # Check requirements
         check_python_version
         check_node_version
