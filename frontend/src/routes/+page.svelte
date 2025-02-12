@@ -1008,6 +1008,7 @@ print(df)`;
 								class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity px-1"
 								on:click|stopPropagation={() => removeFile(index)}
 							>
+								×
 							</span>
 						</button>
 					{/each}
@@ -1020,7 +1021,7 @@ print(df)`;
 					
 					<div class="flex-1"></div>
 					
-					<span class="text-gray-400 text-sm pr-2.5">Press ⌘/Ctrl + Enter to run</span>
+					<span class="text-gray-400 text-sm pr-2.5">Press ⌘ + Enter to run</span>
 				</div>
 			</div>
 			
