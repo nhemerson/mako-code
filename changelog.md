@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased] - 2025-02-11
+
+### Added
+- Added Settings Modal with comprehensive keyboard shortcuts display
+  - Organized shortcuts by category (Code Execution, File Management, Navigation, Context Files)
+  - Accessible keyboard shortcut reference
+  - Clean, modern modal design with dark theme
+- Enhanced keyboard shortcuts functionality
+  - Command+Shift+P (Mac) or Ctrl+Shift+P (Windows) to create new Polars file
+  - Command+Shift+L (Mac) or Ctrl+Shift+L (Windows) to create new SQL file
+- Improved SQL functionality
+  - Added ability to write and execute SQL queries
+  - Support for saving SQL query results to Parquet files using `save_as:` directive
+  - Automatic dataset registration in SQL context
+  - Validation of referenced datasets
+
 ## [Unreleased] - 2025-02-10
 
 ### Added
