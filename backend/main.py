@@ -16,6 +16,7 @@ import subprocess
 import os
 from dotenv import load_dotenv
 import json
+import functions.mako
 
 app = FastAPI()
 
@@ -220,6 +221,29 @@ def create_safe_globals():
 
 @app.post("/execute", response_model=ExecutionResponse)
 async def execute_code(request: CodeRequest):
+    # First check if this is SQL code
+    if request.code.strip().startswith('@sql'):
+        try:
+            # Execute SQL using mako function
+            result = functions.mako.execute_sql(request.code)
+            return {
+                "success": True,
+                "output": str(result),
+                "error_type": None
+            }
+        except ValueError as e:
+            return {
+                "success": False,
+                "output": str(e),
+                "error_type": "SQLError"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "output": f"Unexpected error executing SQL: {str(e)}",
+                "error_type": "SQLError"
+            }
+    
     # First check code safety
     is_safe, error_msg = is_safe_code(request.code)
     if not is_safe:
