@@ -316,10 +316,9 @@ console.log('Doubled numbers:', doubled);`
 					if (result.output && result.output.trim()) {
 						output += result.output;
 						
-						// Check if this was a successful save operation
-						if (result.output.includes('File saved successfully')) {
-							// Refresh the datasets list
-							await loadDatasets();
+						// Check if this was a SQL save operation
+						if (code.includes('@sql') && code.includes('save_as:')) {
+							await loadDatasets(); // Refresh the datasets list
 						}
 					} else if (result.stdout && result.stdout.trim()) {
 						output += result.stdout;
@@ -377,7 +376,6 @@ console.log('Doubled numbers:', doubled);`
 			} catch (error: any) {
 				const errorMessage = `🔴 Error: ${error.message}`;
 				consoleEditor.setValue(errorMessage);
-				console.error(errorMessage);
 				consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
 			}
 		} else {
@@ -578,9 +576,25 @@ print(df)`;
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		// Check for Command/Ctrl + Shift + R
+		// Command/Ctrl + Shift + P (Polars)
+		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'p' || event.key === 'P')) {
+			event.preventDefault();
+			event.stopPropagation();
+			addNewTabWithContent('new_polars.py', 'import polars as pl\n');
+			return false;
+		}
+
+		// Command/Ctrl + Shift + L (SQL)
+		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'l' || event.key === 'L')) {
+			event.preventDefault();
+			event.stopPropagation();
+			addNewTabWithContent('new_sql.py', '@sql\n');
+			return false;
+		}
+
+		// Existing Command/Ctrl + Shift + R handler
 		if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'r') {
-			event.preventDefault(); // Prevent default browser behavior
+			event.preventDefault();
 			restoreLastClosedTab();
 		}
 	}
@@ -612,6 +626,45 @@ print(df)`;
 			editor.setModel(model);
 			updateEditorTheme();
 		}
+	}
+
+	// Add new helper function to create tabs with specific content
+	function addNewTabWithContent(filename: string, content: string) {
+		// Create new file object
+		const newFile: EditorFile = {
+			name: filename,
+			content: content === '@sql\n' ? 
+				'@sql\n\n--save_as:\n\n' : 
+				content,
+			type: 'code',
+			datasetPath: ''
+		};
+
+		// Add the file
+		files = [...files, newFile];
+		activeFileIndex = files.length - 1;
+
+		// Set up model for the new file if editor is available
+		if (monaco && editor) {
+			const model = monaco.editor.createModel(
+				newFile.content,  // Use newFile.content instead of content
+				'python'
+			);
+			files[activeFileIndex].model = model;
+			editor.setModel(model);
+			
+			// Focus the editor
+			editor.focus();
+			
+			// Place cursor at end of content
+			editor.setPosition({ 
+				lineNumber: model.getLineCount(), 
+				column: model.getLineMaxColumn(model.getLineCount()) 
+			});
+		}
+
+		// Save state after adding new file
+		saveEditorState();
 	}
 
 	onMount(async () => {
@@ -1170,7 +1223,9 @@ print(df)`;
 	onClose={handleDataImportClose}
 />
 
-<svelte:window on:keydown={handleKeydown}/>
+<svelte:window 
+	on:keydown|capture={handleKeydown}
+/>
 
 <style>
 	:global(body) {
