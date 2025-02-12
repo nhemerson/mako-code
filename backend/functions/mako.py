@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Union
 import polars as pl
 from functions.ingestion import ensure_dataset_dir
+import re
+from .sql_parser import parse_sql_code, validate_datasets
 
 # Get the absolute path to the backend directory
 BACKEND_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -45,3 +47,43 @@ def save(df: Union[pl.DataFrame, pl.LazyFrame], filename: str):
     print(f"File saved successfully. File exists: {save_path.exists()}")
     
     return df
+
+def execute_sql(code: str) -> pl.DataFrame:
+    """
+    Execute SQL code with support for saving results using Polars SQL context.
+    
+    Args:
+        code: SQL code with optional save directive
+        
+    Returns:
+        The result DataFrame
+    """
+    # Parse the SQL code
+    sql_query, save_as, dataset_names = parse_sql_code(code)
+    
+    # Validate datasets exist
+    is_valid, missing = validate_datasets(dataset_names, DATASET_DIR)
+    if not is_valid:
+        raise ValueError(f"Missing datasets: {', '.join(missing)}")
+    
+    # Create SQL context
+    ctx = pl.SQLContext()
+    
+    # Load all required datasets and register them in the context
+    for name in dataset_names:
+        df = pl.read_parquet(DATASET_DIR / f"{name}.parquet")
+        print(f"Loaded dataset: {name} (shape: {df.shape})")
+        ctx.register(name, df)
+    
+    try:
+        # Execute the query using SQL context
+        result = ctx.execute(sql_query).collect()
+        
+        # Save results if requested
+        if save_as:
+            save(result, save_as)
+            print(f"Results saved as: {save_as}")
+        
+        return result
+    except Exception as e:
+        raise ValueError(f"SQL execution error: {str(e)}")

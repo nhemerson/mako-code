@@ -64,3 +64,48 @@ https://github.com/caioricciuti/duck-ui
 
 - SQL Editor: https://github.com/caioricciuti/duck-ui/blob/main/src/components/editor/SqlEditor.tsx
 - Data Table: https://github.com/caioricciuti/duck-ui/blob/main/src/components/table/DuckUItable.tsx
+
+### Polars documentation:
+
+Global SQL
+
+Querying
+SQL queries can be issued against compatible data structures in the current globals, against specific frames, or incorporated into expressions.
+
+Global SQL
+Both SQLContext and the polars.sql() function can be used to execute SQL queries mediated by the Polars execution engine against Polars DataFrame, LazyFrame, and Series data, as well as Pandas DataFrame and Series, and PyArrow Table and RecordBatch objects. Non-Polars objects are implicitly converted to DataFrame when used in a SQL query; for PyArrow, and Pandas data that uses PyArrow dtypes, this conversion can often be zero-copy if the underlying data maps cleanly to a natively-supported dtype.
+
+Example:
+
+import polars as pl
+import pandas as pd
+
+polars_df = pl.DataFrame({"a": [1, 2, 3, 4], "b": [4, 5, 6, 7]})
+pandas_df = pd.DataFrame({"a": [3, 4, 5, 6], "b": [6, 7, 8, 9]})
+polars_series = (polars_df["a"] * 2).rename("c")
+pyarrow_table = polars_df.to_arrow()
+
+pl.sql(
+    """
+    SELECT a, b, SUM(c) AS c_total FROM (
+      SELECT * FROM polars_df                  -- polars frame
+        UNION ALL SELECT * FROM pandas_df      -- pandas frame
+        UNION ALL SELECT * FROM pyarrow_table  -- pyarrow table
+    ) all_data
+    INNER JOIN polars_series
+      ON polars_series.c = all_data.b          -- polars series
+    GROUP BY "a", "b"
+    ORDER BY "a", "b"
+    """
+).collect()
+
+# shape: (3, 3)
+# ┌─────┬─────┬─────────┐
+# │ a   ┆ b   ┆ c_total │
+# │ --- ┆ --- ┆ ---     │
+# │ i64 ┆ i64 ┆ i64     │
+# ╞═════╪═════╪═════════╡
+# │ 1   ┆ 4   ┆ 8       │
+# │ 3   ┆ 6   ┆ 18      │
+# │ 5   ┆ 8   ┆ 8       │
+# └─────┴─────┴─────────┘
