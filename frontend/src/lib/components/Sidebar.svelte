@@ -53,7 +53,7 @@
     <div class="p-4 flex justify-between items-center border-b border-[#333333]">
         <div class="overflow-hidden whitespace-nowrap">
             {#if !isCollapsed}
-                <span class="text-xl font-semibold transition-opacity duration-75">Mako</span>
+                <span class="text-sm font-semibold transition-opacity duration-75">Mako</span>
             {/if}
         </div>
         <button 
@@ -76,7 +76,7 @@
                     class="w-full flex items-center gap-4 rounded-lg hover:bg-[#222222] transition-colors {$page.url.pathname === '/' ? 'bg-[#222222]' : ''} {isCollapsed ? 'px-2' : 'px-4'} py-3"
                 >
                     <Code size={24} class="shrink-0" />
-                    <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75" class:opacity-0={isCollapsed}>
+                    <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75 text-sm" class:opacity-0={isCollapsed}>
                         Build
                     </span>
                 </button>
@@ -87,7 +87,7 @@
                     class="w-full flex items-center gap-4 rounded-lg hover:bg-[#222222] transition-colors {$page.url.pathname.startsWith('/settings') ? 'bg-[#222222]' : ''} {isCollapsed ? 'px-2' : 'px-4'} py-3"
                 >
                     <Settings size={24} class="shrink-0" />
-                    <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75" class:opacity-0={isCollapsed}>
+                    <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75 text-sm" class:opacity-0={isCollapsed}>
                         Settings
                     </span>
                 </button>

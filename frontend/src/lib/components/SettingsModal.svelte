@@ -54,13 +54,13 @@
             aria-modal="true"
         >
             <div class="flex justify-between items-center mb-8">
-                <h1 class="text-2xl font-semibold text-white">Keyboard Shortcuts</h1>
+                <h1 class="text-2xl font-semibold text-white text-xs">Keyboard Shortcuts</h1>
                 <button
                     on:click={onClose}
                     class="text-gray-400 hover:text-white transition-colors"
                     aria-label="Close shortcuts"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -69,14 +69,14 @@
             <div class="space-y-8">
                 {#each shortcuts as category}
                     <section class="bg-[#1A1A1A] rounded-lg p-6">
-                        <h2 class="text-lg font-medium text-white mb-4">{category.category}</h2>
+                        <h2 class="text-xs font-medium text-white mb-4">{category.category}</h2>
                         <div class="space-y-4">
                             {#each category.items as shortcut}
-                                <div class="flex items-center justify-between text-gray-300">
+                                <div class="flex items-center justify-between text-gray-300 text-xs">
                                     <span>{shortcut.description}</span>
                                     <div class="flex items-center gap-1">
                                         {#each shortcut.keys as key, i}
-                                            <kbd class="px-2 py-1 bg-[#333333] rounded border border-[#444444] text-sm">
+                                            <kbd class="px-2 py-1 bg-[#333333] rounded border border-[#444444] text-xs">
                                                 {key}
                                             </kbd>
                                             {#if i < shortcut.keys.length - 1}
