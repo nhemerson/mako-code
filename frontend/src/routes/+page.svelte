@@ -6,6 +6,7 @@
 	import DataframeView from '$lib/components/DataframeView.svelte';
 	import EnhancedDatasetView from '$lib/components/EnhancedDatasetView.svelte';
 	import { closedTabs } from '$lib/stores/editorStore';
+	import { codeTemplates } from '$lib/templates/codeTemplates';
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
 	let consoleEditor: Monaco.editor.IStandaloneCodeEditor;
@@ -545,7 +546,7 @@ print(df)`;
 		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'p' || event.key === 'P')) {
 			event.preventDefault();
 			event.stopPropagation();
-			addNewTabWithContent('new_polars.py', '#https://docs.pola.rs/api/python/stable/reference/\n\nimport polars as pl\n\ndata = {"a": [1, 2], "b": [3, 4]}\ndf = pl.DataFrame(data)\ndf');
+			addNewTabWithContent('new_polars.py', codeTemplates.polars);
 			return false;
 		}
 
@@ -553,7 +554,15 @@ print(df)`;
 		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'l' || event.key === 'L')) {
 			event.preventDefault();
 			event.stopPropagation();
-			addNewTabWithContent('new_sql.py', '@sql\n');
+			addNewTabWithContent('new_sql.py', codeTemplates.sql);
+			return false;
+		}
+
+		// Command/Ctrl + Shift + B (Bokeh)
+		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'b' || event.key === 'B')) {
+			event.preventDefault();
+			event.stopPropagation();
+			addNewTabWithContent('new_bokeh.py', codeTemplates.bokeh);
 			return false;
 		}
 

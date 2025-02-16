@@ -107,7 +107,8 @@ STDLIB_MODULES = {
 ALLOWED_EXTERNAL_MODULES = {
     'polars',
     'functions',
-    'pyarrow'
+    'pyarrow',
+    'bokeh'
 }
 
 def is_safe_code(code: str) -> tuple[bool, str]:
@@ -174,6 +175,9 @@ def create_safe_globals():
 
     import pyarrow
     safe_globals['pyarrow'] = pyarrow
+
+    import bokeh
+    safe_globals['bokeh'] = bokeh
 
     # Add functions.ingestion module with read_parquet
     from functions import mako

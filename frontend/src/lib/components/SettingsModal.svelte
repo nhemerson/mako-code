@@ -12,10 +12,11 @@
             ]
         },
         {
-            category: "File Management",
+            category: "Tab Management",
             items: [
                 { keys: ["⌘/Ctrl", "Shift", "P"], description: "New Polars file" },
                 { keys: ["⌘/Ctrl", "Shift", "L"], description: "New SQL file" },
+                { keys: ["⌘/Ctrl", "Shift", "B"], description: "New Bokeh file" },
                 { keys: ["⌘/Ctrl", "Shift", "R"], description: "Restore last closed tab" }
             ]
         },
