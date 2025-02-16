@@ -299,89 +299,54 @@ console.log('Doubled numbers:', doubled);`
 		consoleEditor.setValue('Running...\n');
 		output = ''; // Reset output at start
 
-		if (selectedLanguage === 'python') {
-			try {
-				const response = await fetch('http://localhost:8000/execute', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({ code })
-				});
+		try {
+			const response = await fetch('http://localhost:8000/execute', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ code })
+			});
 
-				const result = await response.json();
+			const result = await response.json();
+			
+			if (result.success) {
+				// Handle standard output
+				if (result.output && result.output.trim()) {
+					output += result.output;
+					
+					// Check if this was a SQL save operation
+					if (code.includes('@sql') && code.includes('save_as:')) {
+						await loadDatasets(); // Refresh the datasets list
+					}
+
+					// Check if used the mako function to save the output
+					if (code.includes('save(')) {
+						await loadDatasets(); // Refresh the datasets list
+					}
+
+				} else if (result.stdout && result.stdout.trim()) {
+					output += result.stdout;
+				}
 				
-				if (result.success) {
-					// Handle standard output
-					if (result.output && result.output.trim()) {
-						output += result.output;
-						
-						// Check if this was a SQL save operation
-						if (code.includes('@sql') && code.includes('save_as:')) {
-							await loadDatasets(); // Refresh the datasets list
-						}
-					} else if (result.stdout && result.stdout.trim()) {
-						output += result.stdout;
-					}
-					
-					// Handle errors/stderr
-					if (result.stderr && result.stderr.trim()) {
-						output += '\n\x1b[31m' + result.stderr + '\x1b[0m';
-					}
-					
-					if (!output.trim()) {
-						output = '// No output\n';
-					}
-				} else {
-					const errorMsg = '\x1b[31m🔴 Error: ' + (result.error || result.output) + '\x1b[0m';
-					output = errorMsg;
+				// Handle errors/stderr
+				if (result.stderr && result.stderr.trim()) {
+					output += '\n\x1b[31m' + result.stderr + '\x1b[0m';
 				}
-
-				consoleEditor.setValue(output);
-				consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
-			} catch (error: any) {
-				const errorMessage = '\x1b[31m🔴 Error: Failed to execute code. Make sure the backend server is running.\n' + error.message + '\x1b[0m';
-				consoleEditor.setValue(errorMessage);
-				consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
-			}
-		} else if (selectedLanguage === 'javascript') {
-			// Create a proxy console to capture output
-			const proxyConsole = {
-				log: (...args: any[]) => {
-					const message = args.map(arg => 
-						typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-					).join(' ') + '\n';
-					output += message;
-					console.log(...args);
-				},
-				error: (...args: any[]) => {
-					const message = '🔴 Error: ' + args.map(arg => 
-						arg instanceof Error ? arg.message : String(arg)
-					).join(' ') + '\n';
-					output += message;
-					console.error(...args);
-				},
-				warn: (...args: any[]) => {
-					const message = '⚠️ Warning: ' + args.map(arg => String(arg)).join(' ') + '\n';
-					output += message;
-					console.warn(...args);
+				
+				if (!output.trim()) {
+					output = '// No output\n';
 				}
-			};
-
-			try {
-				const runCode = new Function('console', code);
-				runCode(proxyConsole);
-				consoleEditor.setValue(output || '// No output');
-				consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
-			} catch (error: any) {
-				const errorMessage = `🔴 Error: ${error.message}`;
-				consoleEditor.setValue(errorMessage);
-				consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
+			} else {
+				const errorMsg = '\x1b[31m🔴 Error: ' + (result.error || result.output) + '\x1b[0m';
+				output = errorMsg;
 			}
-		} else {
-			const message = `🔴 Error: Running ${languages.find(l => l.id === selectedLanguage)?.name || selectedLanguage} code is not supported yet.`;
-			consoleEditor.setValue(message);
-			console.log(message);
+
+			consoleEditor.setValue(output);
+			consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
+		} catch (error: any) {
+			const errorMessage = '\x1b[31m🔴 Error: Failed to execute code. Make sure the backend server is running.\n' + error.message + '\x1b[0m';
+			consoleEditor.setValue(errorMessage);
 			consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
 		}
 	}
@@ -580,7 +545,7 @@ print(df)`;
 		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'p' || event.key === 'P')) {
 			event.preventDefault();
 			event.stopPropagation();
-			addNewTabWithContent('new_polars.py', 'import polars as pl\n');
+			addNewTabWithContent('new_polars.py', '#https://docs.pola.rs/api/python/stable/reference/\n\nimport polars as pl\n\ndata = {"a": [1, 2], "b": [3, 4]}\ndf = pl.DataFrame(data)\ndf');
 			return false;
 		}
 
@@ -984,7 +949,7 @@ print(df)`;
 								   bg-[#1a1a1a] text-gray-400 hover:bg-[#252525]
 								   {index === activeFileIndex ? 'border-t-2 border-t-white -mt-[1px] text-white' : ''}
 								   {draggedTabIndex === index ? 'opacity-50' : ''}
-								   flex items-center min-w-[100px] max-w-[200px] group"
+								   flex items-center min-w-[100px] max-w-[200px] group font-mono text-xs"
 							on:click={() => switchFile(index)}
 							on:mousedown={(e) => startRename(index, e)}
 							draggable="true"
@@ -1021,7 +986,7 @@ print(df)`;
 					
 					<div class="flex-1"></div>
 					
-					<span class="text-gray-400 text-sm pr-2.5">Press ⌘ + Enter to run</span>
+					<span class="text-gray-400 text-xs pr-2.5 font-mono">Press ⌘ + Enter to run</span>
 				</div>
 			</div>
 			
