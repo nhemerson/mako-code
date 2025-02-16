@@ -569,11 +569,11 @@ print(df)`;
 		if (!lastTab) return; // No tabs to restore
 
 		// Create new file object
-		const newFile = {
+		const newFile: EditorFile = {
 			name: lastTab.name,
 			content: lastTab.content,
 			type: lastTab.type,
-			datasetPath: lastTab.datasetPath,
+			datasetPath: lastTab.datasetPath || '',  // Ensure it's always a string
 			datasetName: lastTab.datasetName
 		};
 
@@ -602,7 +602,7 @@ print(df)`;
 				'@sql\n\n--save_as:\n\n' : 
 				content,
 			type: 'code',
-			datasetPath: ''
+			datasetPath: ''  // Ensure this is always a string
 		};
 
 		// Add the file
@@ -1055,7 +1055,7 @@ print(df)`;
 				<h2 class="text-white font-semibold mb-4 text-xs uppercase tracking-wider">Data Management</h2>
 				<div class="space-y-4">
 					<button
-						class="w-full px-4 py-2 bg-[#181818] hover:bg-[#222222] text-white rounded-lg transition-colors text-sm flex items-center justify-center gap-2 border border-[#333333]"
+						class="w-full px-4 py-2 bg-[#181818] hover:bg-[#222222] text-white rounded-lg transition-colors text-xs flex items-center justify-center gap-2 border border-[#333333]"
 						on:click={() => showDataImportModal = true}
 					>
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1093,7 +1093,7 @@ print(df)`;
 						style="max-height: {isExploreExpanded ? '500px' : '0px'}; opacity: {isExploreExpanded ? '1' : '0'}"
 					>
 						{#if datasets.length === 0}
-							<div class="text-gray-400 text-sm p-1">
+							<div class="text-gray-400 text-xs p-1">
 								No datasets available
 							</div>
 						{:else}
@@ -1111,7 +1111,7 @@ print(df)`;
 											<line x1="3" y1="15" x2="21" y2="15"/>
 											<line x1="9" y1="9" x2="9" y2="21"/>
 										</svg>
-										<span class="text-sm">{dataset.name}</span>
+										<span class="text-xs">{dataset.name}</span>
 									</div>
 									<div class="dataset-dropdown relative">
 										<button
@@ -1132,7 +1132,7 @@ print(df)`;
 												on:click|stopPropagation
 											>
 												<button
-													class="w-full px-4 py-2 text-sm text-left text-gray-400 hover:bg-[#333333] hover:text-white transition-colors flex items-center gap-2"
+													class="w-full px-4 py-2 text-xs text-left text-gray-400 hover:bg-[#333333] hover:text-white transition-colors flex items-center gap-2"
 													on:click={() => analyzeDataset(dataset)}
 												>
 													<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1142,7 +1142,7 @@ print(df)`;
 													Analyze Dataset
 												</button>
 												<button
-													class="w-full px-4 py-2 text-sm text-left text-gray-400 hover:bg-[#333333] hover:text-white transition-colors flex items-center gap-2"
+													class="w-full px-4 py-2 text-xs text-left text-gray-400 hover:bg-[#333333] hover:text-white transition-colors flex items-center gap-2"
 													on:click={() => {
 														addDatasetContext(dataset);
 														showDropdownForDataset = null;
@@ -1155,7 +1155,7 @@ print(df)`;
 													Add Context
 												</button>
 												<button
-													class="w-full px-4 py-2 text-sm text-left text-red-400 hover:bg-[#333333] hover:text-red-300 transition-colors flex items-center gap-2"
+													class="w-full px-4 py-2 text-xs text-left text-red-400 hover:bg-[#333333] hover:text-red-300 transition-colors flex items-center gap-2"
 													on:click={() => {
 														if (confirm('Are you sure you want to delete this dataset? This will also delete any associated context files.')) {
 															deleteDataset(dataset.path);
