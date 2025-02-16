@@ -1,19 +1,24 @@
 export const codeTemplates = {
-    polars: `#https://docs.pola.rs/api/python/stable/reference/
+    polars: `# https://docs.pola.rs/api/python/stable/reference/
 
 import polars as pl
 
 data = {"a": [1, 2], "b": [3, 4]}
 df = pl.DataFrame(data)
-df`,
+print(df)`,
 
     sql: `@sql
+--https://docs.pola.rs/api/python/stable/reference/sql/index.html
 
+SELECT 
+* 
+FROM my_table
 --save_as:
 
 `,
 
     bokeh: `# https://docs.bokeh.org/en/latest/docs/user_guide.html
+
 from bokeh.plotting import figure, show
 
 fruits = ['Apples', 'Pears', 'Nectarines', 'Plums', 'Grapes', 'Strawberries']

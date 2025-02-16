@@ -979,7 +979,7 @@ print(df)`;
 								<span class="truncate flex-1">{file.name}</span>
 							{/if}
 							<span
-								class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity px-1"
+								class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity px-1 text-lg"
 								on:click|stopPropagation={() => removeFile(index)}
 							>
 								×
@@ -995,7 +995,7 @@ print(df)`;
 					
 					<div class="flex-1"></div>
 					
-					<span class="text-gray-400 text-xs pr-2.5 font-mono">Press ⌘ + Enter to run</span>
+					<span class="text-gray-400 text-xs pr-2.5 font-mono">Press ⌘/Ctrl + Enter to run</span>
 				</div>
 			</div>
 			
