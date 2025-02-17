@@ -1,5 +1,30 @@
 # Changelog
 
+## [Unreleased] - 2025-02-16
+
+### Added
+- Added datetime module (datetime, date, timedelta) to safe_globals
+- Added random module to safe_globals for random number generation
+- Integrated Bokeh plotting functionality
+  - Shortcut to open bokeh plot in a new tab
+  - Added support for interactive data visualization using Bokeh
+  - Automatic plot rendering in output cells
+  - Support for multiple plot types (line, scatter, bar charts)
+  - Interactive features including zoom, pan, and hover tooltips
+  - Plot state persistence across sessions
+  - Responsive plot sizing within the notebook interface
+  - Organized shortcuts by category (Code Execution, File Management, Navigation, Context Files)
+  - Accessible keyboard shortcut reference
+  - Clean, modern modal design with dark theme
+- Enhanced keyboard shortcuts functionality
+  - Command+Shift+P (Mac) or Ctrl+Shift+P (Windows) to create new Polars file
+  - Command+Shift+L (Mac) or Ctrl+Shift+L (Windows) to create new SQL file
+- Improved SQL functionality
+  - Added ability to write and execute SQL queries
+  - Support for saving SQL query results to Parquet files using `save_as:` directive
+  - Automatic dataset registration in SQL context
+  - Validation of referenced datasets
+
 ## [Unreleased] - 2025-02-11
 
 ### Added

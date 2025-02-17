@@ -1,2 +1,67 @@
-# mako
-A focused, fast, useful Analytics tool for Small Data
+ _____ _____ __  __ _____
+|     |  _  |  |/  |     |
+| | | |     |    |    |  |
+|_|_|_|__|__|__/\__|_____|
+
+Analytics Tools for Small Data
+
+## What is Mako?
+
+Mako is a modern web-based analytics platform that combines the power of an interactive code editor with robust data management capabilities. It provides data scientists, analysts, and developers with a seamless environment for writing, executing, and analyzing python code alongside powerful data visualization features. 
+
+Mako is an analytics IDE with an opinion. Out of the box, it allows for a small set of python modules to be imported and used. 
+- All built in python functions
+- Polars for data processing
+- Bokeh for plotting
+- Pyarrow for data transfer
+
+However, it is easy to add more modules as needed. The goals is to provide a consise workspace that is light in dependencies and easy to install.
+
+## Key Features
+
+- 🚀 Interactive code editor with syntax highlighting and multiple language support
+- 📊 Real-time code execution environment
+- 💾 Efficient data management system for importing and analyzing datasets
+- 🎨 Beautiful split-pane interface with adjustable views
+- 📁 Smart file management with multiple tabs
+- 📈 Dataset visualization and analysis tools
+- ⌨️ Comprehensive keyboard shortcuts for productivity
+- 📝 SQL query support with dataset integration
+- 📊 Interactive Bokeh plotting functionality
+
+## Tech Stack
+
+### Frontend
+- SvelteKit
+- Monaco Editor (VS Code's editor)
+- TypeScript
+- Bokeh for interactive visualizations
+
+### Backend
+- FastAPI
+- Polars for data processing
+- DuckDB for SQL queries
+- Ruff for code linting
+- Python standard library
+
+## Local Development Setup
+
+Prerequisites:
+- Python 3.11+
+- Node.js 18+
+- uv package manager (for Python dependencies)
+
+Launch development environment:
+```bash
+./mako dev
+```
+
+This script will:
+- Check for required Python and Node.js versions
+- Install dependencies using uv
+- Start both frontend and backend servers
+- Automatically open your browser
+
+## Contributing
+
+We welcome contributions! Please feel free to submit a Pull Request. I will make sure any accepted PRs are added to the next release and you are credited in the changelog.
