@@ -169,8 +169,9 @@ def create_safe_globals():
     """Create a dictionary of safe globals for code execution"""
     safe_globals = {}
     
-    # Add polars module - expose the entire module
+    # Add polars module
     import polars as pl
+    safe_globals['pl'] = pl
     safe_globals['polars'] = pl
 
     import pyarrow
@@ -179,13 +180,25 @@ def create_safe_globals():
     import bokeh
     safe_globals['bokeh'] = bokeh
 
+    # Add datetime module properly
+    from datetime import datetime, timedelta, date, time, timezone
+    safe_globals['datetime'] = datetime
+    safe_globals['timedelta'] = timedelta
+    safe_globals['date'] = date
+    safe_globals['time'] = time
+    safe_globals['timezone'] = timezone
+
+    # Add random module properly
+    import random
+    safe_globals['random'] = random
+
     # Add functions.ingestion module with read_parquet
     from functions import mako
     safe_globals['functions'] = type('SafeMako', (), {
         'ingestion': type('SafeIngestion', (), {
             'read_parquet': pl.read_parquet
         }),
-        'mako': mako  # Add the entire mako module
+        'mako': mako
     })
 
     # Add built-in functions

@@ -5,13 +5,23 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to check Python version
+# Function to check Python version and ensure Python 3.11 is available
 check_python_version() {
-    python_version=$(python3 -c 'import sys; v=sys.version_info; print(f"{v.major}{v.minor}")')
-    if [ "$python_version" -lt 38 ]; then
-        echo "Error: Python 3.8 or higher is required (found $python_version)"
-        exit 1
+    # First check if Python 3.11 is available
+    if command -v python3.11 >/dev/null 2>&1; then
+        return 0
     fi
+    
+    # If not, check if uv is installed to potentially install Python 3.11
+    if command_exists uv; then
+        echo "Python 3.11 not found, but uv is available to create environment"
+        return 0
+    fi
+    
+    # If neither condition is met, show error
+    echo "Error: Python 3.11 is required and neither python3.11 nor uv was found"
+    echo "Please install Python 3.11 or uv (https://astral.sh/uv)"
+    exit 1
 }
 
 # Function to check Node.js version
@@ -40,10 +50,23 @@ start_backend() {
     # Create virtual environment if it doesn't exist
     if [ ! -d ".venv" ]; then
         echo "Creating Python virtual environment..."
-        curl -Lf https://astral.sh/uv/install.sh | sh
-        python3 -m venv .venv
-        source .venv/bin/activate
-        curl -Lf https://astral.sh/uv/install.sh | sh
+        # Remove any existing partial .venv
+        rm -rf .venv
+        
+        # Ensure uv is installed
+        if ! command_exists uv; then
+            echo "Installing uv..."
+            curl -Lf https://astral.sh/uv/install.sh | sh
+        fi
+        
+        # Use uv to create venv with Python 3.11
+        echo "Creating venv with Python 3.11..."
+        ~/.cargo/bin/uv venv .venv --python=3.11
+        
+        if [ ! -d ".venv" ]; then
+            echo "Error: Failed to create virtual environment"
+            exit 1
+        fi
     fi
     
     # Activate virtual environment
