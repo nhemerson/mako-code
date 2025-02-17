@@ -1,7 +1,5 @@
- _____ _____ __  __ _____
-|     |  _  |  |/  |     |
-| | | |     |    |    |  |
-|_|_|_|__|__|__/\__|_____|
+
+<img width="207" alt="Screenshot 2025-02-16 at 9 11 12 PM" src="https://github.com/user-attachments/assets/d84dc7f2-95d7-47d0-8c04-bb8701cf396a" />
 
 Analytics Tools for Small Data
 
@@ -15,7 +13,7 @@ Mako is an analytics IDE with an opinion. Out of the box, it allows for a small 
 - Bokeh for plotting
 - Pyarrow for data transfer
 
-However, it is easy to add more modules as needed. The goals is to provide a consise workspace that is light in dependencies and easy to install.
+However, it is easy to add more modules as needed. The goals is to provide a concise workspace that is light in dependencies and easy to install.
 
 ## Key Features
 
