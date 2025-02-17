@@ -221,6 +221,24 @@ def create_safe_globals():
         'zip': zip,
     })
 
+    #Add datetime module
+    import datetime
+    safe_globals['datetime'] = datetime
+    safe_globals['date'] = datetime.date
+    safe_globals['time'] = datetime.time
+    safe_globals['timedelta'] = datetime.timedelta
+    safe_globals['timezone'] = datetime.timezone
+    safe_globals['datetime'] = datetime
+    safe_globals['datetime'] = datetime
+
+    #Add random module
+    import random
+    safe_globals['random'] = random
+    safe_globals['randint'] = random.randint
+    safe_globals['choice'] = random.choice
+    safe_globals['shuffle'] = random.shuffle
+    safe_globals['random'] = random
+
     return safe_globals
 
 @app.post("/execute", response_model=ExecutionResponse)

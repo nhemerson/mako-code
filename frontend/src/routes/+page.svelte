@@ -949,7 +949,7 @@ print(df)`;
 
 <div class="flex-1 flex flex-col overflow-hidden">
 	<div class="flex h-screen bg-[#1a1a1a]">
-		<div class="w-[60%] flex flex-col flex-1" style="width: {isSidebarCollapsed ? '97%' : '60%'}; transition: all 0.3s ease-in-out;">
+		<div class="w-[60%] flex flex-col flex-1" style="width: {isSidebarCollapsed ? '97%' : '60%'}; transition: all 0.05s ease-in-out;">
 			<div class="flex flex-col">
 				<div class="flex items-center space-x-0 pt-2.5 overflow-x-auto">
 					{#each files as file, index}
@@ -1039,7 +1039,7 @@ print(df)`;
 			</div>
 		</div>
 		
-		<div class="{isSidebarCollapsed ? 'w-[50px]' : 'w-[20%]'} border-l border-[#333333] flex flex-col bg-[#181818] p-4 relative transition-all duration-300 ease-in-out">
+		<div class="{isSidebarCollapsed ? 'w-[50px]' : 'w-[20%]'} border-l border-[#333333] flex flex-col bg-[#181818] p-4 relative transition-all duration-150 ease-in-out">
 			<button
 				class="absolute top-4 {isSidebarCollapsed ? 'left-1/2 -translate-x-1/2' : 'right-4'} text-gray-400 hover:text-white transition-colors"
 				on:click={() => isSidebarCollapsed = !isSidebarCollapsed}
@@ -1060,7 +1060,7 @@ print(df)`;
 				</svg>
 			</button>
 
-			<div class="right-panel h-full overflow-y-auto {isSidebarCollapsed ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300" style="visibility: {isSidebarCollapsed ? 'hidden' : 'visible'}">
+			<div class="right-panel h-full overflow-y-auto {isSidebarCollapsed ? 'opacity-0' : 'opacity-100'} transition-opacity duration-50" style="visibility: {isSidebarCollapsed ? 'hidden' : 'visible'}">
 				<h2 class="text-white font-semibold mb-4 text-xs uppercase tracking-wider">Data Management</h2>
 				<div class="space-y-4">
 					<button

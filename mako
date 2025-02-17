@@ -8,8 +8,8 @@ command_exists() {
 # Function to check Python version
 check_python_version() {
     python_version=$(python3 -c 'import sys; v=sys.version_info; print(f"{v.major}{v.minor}")')
-    if [ "$python_version" -lt 38 ]; then
-        echo "Error: Python 3.8 or higher is required (found $python_version)"
+    if [ "$python_version" -lt 310 ]; then
+        echo "Error: Python 3.10 or higher is required (found Python ${python_version:0:1}.${python_version:1})"
         exit 1
     fi
 }
@@ -40,10 +40,23 @@ start_backend() {
     # Create virtual environment if it doesn't exist
     if [ ! -d ".venv" ]; then
         echo "Creating Python virtual environment..."
-        curl -Lf https://astral.sh/uv/install.sh | sh
-        python3 -m venv .venv
-        source .venv/bin/activate
-        curl -Lf https://astral.sh/uv/install.sh | sh
+        # Remove any existing partial .venv
+        rm -rf .venv
+        
+        # Ensure uv is installed
+        if ! command_exists uv; then
+            echo "Installing uv..."
+            curl -Lf https://astral.sh/uv/install.sh | sh
+        fi
+        
+        # Use uv to create venv with Python 3.11
+        echo "Creating venv with Python 3.11..."
+        ~/.cargo/bin/uv venv .venv --python=3.11
+        
+        if [ ! -d ".venv" ]; then
+            echo "Error: Failed to create virtual environment"
+            exit 1
+        fi
     fi
     
     # Activate virtual environment
