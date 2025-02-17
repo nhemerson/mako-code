@@ -5,13 +5,23 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to check Python version
+# Function to check Python version and ensure Python 3.11 is available
 check_python_version() {
-    python_version=$(python3 -c 'import sys; v=sys.version_info; print(f"{v.major}{v.minor}")')
-    if [ "$python_version" -lt 310 ]; then
-        echo "Error: Python 3.10 or higher is required (found Python ${python_version:0:1}.${python_version:1})"
-        exit 1
+    # First check if Python 3.11 is available
+    if command -v python3.11 >/dev/null 2>&1; then
+        return 0
     fi
+    
+    # If not, check if uv is installed to potentially install Python 3.11
+    if command_exists uv; then
+        echo "Python 3.11 not found, but uv is available to create environment"
+        return 0
+    fi
+    
+    # If neither condition is met, show error
+    echo "Error: Python 3.11 is required and neither python3.11 nor uv was found"
+    echo "Please install Python 3.11 or uv (https://astral.sh/uv)"
+    exit 1
 }
 
 # Function to check Node.js version
