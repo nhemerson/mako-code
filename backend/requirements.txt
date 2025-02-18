@@ -1,13 +1,18 @@
+# Core dependencies
 fastapi==0.109.0
 uvicorn==0.27.0
-pydantic>=1.8.2
+pydantic==2.6.1
 python-multipart==0.0.6
-RestrictedPython>=6.0
+RestrictedPython==6.3
 polars==1.22.0
-pyarrow>=19.0.0
-ruff==0.1.14
+pyarrow==14.0.2
 python-dotenv==1.0.0
 google-cloud-storage==3.0.0
 google-cloud-bigquery-storage==2.26.0
-urllib3<2.0.0  # Pin to version 1.x to avoid SSL warnings
-bokeh>=3.6.3
+urllib3==1.26.18
+bokeh==3.6.3
+ruff==0.1.14  # Required for Mako editor linting
+
+# Security dependencies
+cryptography==42.0.2
+certifi==2024.2.2

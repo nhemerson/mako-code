@@ -1,0 +1,17 @@
+# Install production dependencies
+-r requirements.txt
+
+# Development tools
+black==24.1.1
+pytest==8.0.0
+pytest-cov==4.1.0
+mypy==1.8.0
+ipython==8.21.0
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.3
+
+# Type stubs for better IDE support
+types-urllib3==1.26.25.14
+types-requests==2.31.0.20240125

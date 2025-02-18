@@ -5,6 +5,7 @@ __pycache__/
 *.so
 .Python
 .python-version
+!python-version.template
 env/
 build/
 develop-eggs/
@@ -25,6 +26,8 @@ temp/
 
 # Node/Frontend
 node_modules/
+.nvmrc
+!node-version.template
 .svelte-kit/
 package-lock.json
 .DS_Store
