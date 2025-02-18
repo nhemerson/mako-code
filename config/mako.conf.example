@@ -1,0 +1,42 @@
+# Mako Configuration Template
+# Copy to mako.conf and modify values
+
+# ========================
+# Core Application Settings
+# ========================
+HOST="127.0.0.1"  # Bind address (0.0.0.0 for external access)
+PORT=8000          # API server port
+ENVIRONMENT="development"  # [development|production]
+LOG_LEVEL="info"   # [debug|info|warning|error]
+
+# ==================
+# Path Configuration
+# ==================
+DATA_DIR="./data"   # Persistent data storage
+LOG_DIR="./logs"    # Application logs
+CACHE_DIR="./cache" # Temporary files
+
+# ======================
+# Development Features
+# ======================
+DEV_RELOAD="true"    # Enable auto-reload (disable in production)
+DEBUG_TOOLBAR="true" # Show debugging interface
+
+# ======================
+# Third-Party Integrations
+# ======================
+# GOOGLE_ANALYTICS_ID=""  # Uncomment to enable
+# SENTRY_DSN=""           # Error monitoring service
+
+# ======================
+# Security (Use environment variables for actual values!)
+# ======================
+# API_KEY="${MAKO_API_KEY}"
+# ADMIN_TOKEN="${MAKO_ADMIN_TOKEN}"
+
+# ======================
+# Advanced Settings
+# ======================
+# UVICORN_WORKERS=4      # Production: CPU cores + 1
+# MAX_UPLOAD_SIZE=100    # MB
+# DATABASE_TIMEOUT=30    # Seconds 
