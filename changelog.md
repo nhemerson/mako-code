@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased] - 2025-02-17
+
+### Added
+- Enhanced backend startup and configuration management
+  - Improved startup.sh script with better path handling and configuration validation
+  - Added comprehensive config file validation in validate_config.sh
+  - Enhanced mako script with better Python version detection and environment setup
+  - Added uv package manager integration for more reliable dependency management
+  - Improved error handling and user feedback during startup
+  - Added support for MAKO_CONFIG environment variable to override config location
+  - Enhanced production safety checks and environment validation
+  - Added IP address validation for HOST configuration
+
 ## [Unreleased] - 2025-02-16
 
 ### Added
