@@ -9,16 +9,22 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # =============================================
-# Configuration File Loading
+# Configuration File Setup
 # =============================================
-# Allow override of config path via MAKO_CONFIG env var
-# Otherwise use default path relative to project root
 CONFIG_FILE="${MAKO_CONFIG:-$PROJECT_ROOT/config/mako.conf}"
+CONFIG_EXAMPLE="$PROJECT_ROOT/config/mako.conf.example"
+
+# If config doesn't exist but example does, create from example
+if [ ! -f "$CONFIG_FILE" ] && [ -f "$CONFIG_EXAMPLE" ]; then
+    echo "Creating config from example..."
+    cp "$CONFIG_EXAMPLE" "$CONFIG_FILE"
+fi
+
+# Now try to load the config
 if [ -f "$CONFIG_FILE" ]; then
-    # Source the config file to load all variables into current shell
     source "$CONFIG_FILE"
 else
-    echo "Error: Configuration file not found at $CONFIG_FILE"
+    echo "Error: Configuration file not found at $CONFIG_FILE and could not be created from example."
     exit 1
 fi
 

@@ -54,6 +54,7 @@ backend/functions/*.pyc
 production_considerations.md
 open_source_considerations.md
 docs/
+directions/
 
 # Ignore user-specific config files
 config/mako.conf
