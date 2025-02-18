@@ -18,7 +18,13 @@ from dotenv import load_dotenv
 import json
 import functions.mako
 
-app = FastAPI()
+app = FastAPI(
+    title="Mako API",
+    description="Open Source Analytics Platform",
+    version="0.1.0",
+    docs_url="/api/docs" if os.getenv("ENVIRONMENT") == "development" else None,
+    redoc_url=None
+)
 
 # Enable CORS
 app.add_middleware(

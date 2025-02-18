@@ -8,7 +8,8 @@ command_exists() {
 # Function to check Python version and ensure Python 3.11 is available
 check_python_version() {
     # First check if Python 3.11 is available
-    if command -v python3.11 >/dev/null 2>&1; then
+    PYTHON_VERSION=${MAKO_PYTHON_VERSION:-3.11}
+    if command -v "python${PYTHON_VERSION}" >/dev/null 2>&1; then
         return 0
     fi
     
@@ -79,34 +80,42 @@ start_backend() {
     # Always check and install requirements
     echo "Checking and updating Python dependencies..."
     rm -f .venv/installed  # Remove the installed marker
-    uv pip install --force-reinstall -r requirements.txt
+    uv pip install --force-reinstall -r requirements.txt >/dev/null 2>&1  # Suppress output
     touch .venv/installed
     
     # Small delay to ensure previous process is fully terminated
     sleep 2
     
-    # Start the backend server
-    # Ensure we're in the virtual environment before starting uvicorn
-    source .venv/bin/activate
-    echo "Starting uvicorn with packages from $(which python)"
-    .venv/bin/uvicorn main:app --reload --host 0.0.0.0 --port 8000 &
+    # Now calls the startup.sh and captures its exit status
+    ./startup.sh
+    BACKEND_STATUS=$?
+    
+    if [ $BACKEND_STATUS -ne 0 ]; then
+        echo "ERROR: Backend server failed to start"
+        cd ..
+        exit 1
+    fi
+    
     cd ..
 }
 
 # Function to start the frontend server
 start_frontend() {
-    echo "Starting frontend server..."
-    cd frontend
-    
-    # Install dependencies if needed
-    if [ ! -d "node_modules" ]; then
-        echo "Installing Node.js dependencies..."
-        npm install
+    # Only start frontend if backend started successfully
+    if [ $BACKEND_STATUS -eq 0 ]; then
+        echo "Starting frontend server..."
+        cd frontend
+        
+        # Install dependencies if needed
+        if [ ! -d "node_modules" ]; then
+            echo "Installing Node.js dependencies..."
+            npm install
+        fi
+        
+        # Start the frontend server
+        npm run dev &
+        cd ..
     fi
-    
-    # Start the frontend server
-    npm run dev &
-    cd ..
 }
 
 # Function to open the browser
@@ -124,7 +133,7 @@ open_browser() {
 
 # Main script
 case "$1" in
-    "dev")
+    "run")
         # Kill any existing processes first
         echo "Stopping any existing processes..."
         pkill -f "uvicorn main:app" || true
@@ -135,24 +144,41 @@ case "$1" in
         check_python_version
         check_node_version
         
-        # Start servers
+        # Start servers and track status
         start_backend
-        start_frontend
         
-        # Open browser
-        open_browser
-        
-        # Keep script running and show logs
-        echo "Mako is running!"
-        echo "Frontend: http://localhost:5173"
-        echo "Backend: http://localhost:8000"
-        echo "Press Ctrl+C to stop all servers"
-        
-        # Wait for Ctrl+C
-        wait
+        # Only continue if backend started successfully
+        if [ $BACKEND_STATUS -eq 0 ]; then
+            start_frontend
+            
+            # Open browser
+            open_browser
+            
+            # Show success message only if both servers started
+            echo "Mako is running!"
+            echo "Frontend: http://localhost:5173"
+            echo "Backend: http://localhost:8000"
+            echo "Press Ctrl+C to stop all servers"
+            
+            # Wait for Ctrl+C
+            wait
+        else
+            echo "Mako failed to start due to backend errors"
+            exit 1
+        fi
+        ;;
+    "clean")
+        echo "Cleaning up Mako environment..."
+        rm -rf backend/.venv
+        rm -rf frontend/node_modules
+        ;;
+    "uninstall")
+        ./mako clean
+        echo "Removing config files..."
+        rm -f config/mako.conf
         ;;
     *)
-        echo "Usage: ./mako dev"
+        echo "Usage: ./mako run"
         exit 1
         ;;
 esac 

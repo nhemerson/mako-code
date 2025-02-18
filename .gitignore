@@ -51,5 +51,9 @@ backend/data/datasets/
 backend/__pycache__/
 backend/functions/__pycache__/
 backend/functions/*.pyc
-directions/prompts.md
-directions/repos.md
+production_considerations.md
+open_source_considerations.md
+docs/
+
+# Ignore user-specific config files
+config/mako.conf
