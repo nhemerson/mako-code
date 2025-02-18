@@ -13,6 +13,10 @@
   - Enhanced production safety checks and environment validation
   - Added IP address validation for HOST configuration
 
+### Changed
+- Updated Python and Node.js version requirements in template files
+- Updated requirements.txt with latest dependency versions
+
 ## [Unreleased] - 2025-02-16
 
 ### Added

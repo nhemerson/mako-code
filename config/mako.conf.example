@@ -40,3 +40,26 @@ DEBUG_TOOLBAR="true" # Show debugging interface
 # UVICORN_WORKERS=4      # Production: CPU cores + 1
 # MAX_UPLOAD_SIZE=100    # MB
 # DATABASE_TIMEOUT=30    # Seconds 
+
+# ======================
+# Dependency Management
+# ======================
+UV_ENABLED="true"        # Enable uv package installer
+UV_PATH="${HOME}/.cargo/bin/uv"  # Path to uv executable
+FALLBACK_PIP="true"      # Use pip if uv is not available
+PIP_EXTRA_INDEX=""       # Additional package index URL (optional)
+
+# ======================
+# Version Requirements
+# ======================
+PYTHON_MIN_VERSION="3.11.0"   # Minimum Python version
+NODE_MIN_VERSION="16.0.0"    # Minimum Node.js version
+PYTHON_VENV_PATH=".venv"     # Virtual environment location
+NODE_ENV="development"       # Node environment [development|production]
+
+# ======================
+# Package Management
+# ======================
+PACKAGE_CACHE_DIR=".package-cache"  # Package download cache
+OFFLINE_MODE="false"               # Work with cached packages only
+STRICT_VERSIONS="true"            # Enforce exact version matches 
