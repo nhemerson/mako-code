@@ -23,6 +23,14 @@ DEV_RELOAD="true"    # Enable auto-reload (disable in production)
 DEBUG_TOOLBAR="true" # Show debugging interface
 
 # ======================
+# Cloud Storage Providers
+# ======================
+# AWS_ENABLED="false"      # Enable AWS S3 compatibility
+# GCP_ENABLED="false"      # Enable Google Cloud Storage
+# R2_ENABLED="false"       # Enable Cloudflare R2
+# AZURE_ENABLED="false"    # Enable Azure Blob Storage
+
+# ======================
 # Third-Party Integrations
 # ======================
 # GOOGLE_ANALYTICS_ID=""  # Uncomment to enable

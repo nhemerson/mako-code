@@ -32,51 +32,6 @@
 		{ id: 'javascript' as const, name: 'JavaScript' }
 	];
 
-	const sampleCode: Record<'python' | 'sql' | 'rust' | 'javascript', string> = {
-		python: `# Python example
-def greet(name):
-    return f"Hello, {name}!"
-
-message = greet("World")
-print(message)
-
-# List comprehension example
-numbers = [1, 2, 3, 4, 5]
-squares = [n ** 2 for n in numbers]
-print(f"Squares: {squares}")`,
-		sql: `-- SQL example
-CREATE TABLE users (
-    id INTEGER PRIMARY KEY,
-    name TEXT,
-    age INTEGER
-);
-
-INSERT INTO users (name, age) VALUES
-    ('Alice', 30),
-    ('Bob', 25);
-
-SELECT name, age
-FROM users
-WHERE age >= 25
-ORDER BY name;`,
-		rust: `// Rust example
-fn main() {
-    println!("Hello from Rust!");
-    
-    let numbers = vec![1, 2, 3, 4, 5];
-    for n in numbers {
-        println!("{}", n * 2);
-    }
-}`,
-		javascript: `// JavaScript example
-console.log('Hello from JavaScript!');
-
-// Array operations
-const numbers = [1, 2, 3, 4, 5];
-const doubled = numbers.map(n => n * 2);
-console.log('Doubled numbers:', doubled);`
-	};
-
 	interface EditorFile {
 		name: string;
 		content: string;
