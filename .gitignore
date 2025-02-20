@@ -58,6 +58,7 @@ production_considerations.md
 open_source_considerations.md
 docs/
 directions/
+repos.md
 
 # Ignore user-specific config files
 config/mako.conf

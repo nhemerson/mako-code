@@ -63,7 +63,8 @@
 			name: file.name,
 			content: file.content,
 			type: file.type,
-			datasetPath: file.datasetPath || ''
+			datasetPath: file.datasetPath || '',
+			datasetName: file.datasetName
 		}));
 		
 		localStorage.setItem('editorFiles', JSON.stringify(filesForStorage));
@@ -240,6 +241,9 @@
 			// If we removed a file before the active file, decrement the index
 			activeFileIndex--;
 		}
+
+		// Save the new state after removing the file
+		saveEditorState();
 	}
 
 	function changeLanguage() {
