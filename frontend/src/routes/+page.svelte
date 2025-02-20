@@ -63,7 +63,8 @@
 			name: file.name,
 			content: file.content,
 			type: file.type,
-			datasetPath: file.datasetPath || ''
+			datasetPath: file.datasetPath || '',
+			datasetName: file.datasetName
 		}));
 		
 		localStorage.setItem('editorFiles', JSON.stringify(filesForStorage));
@@ -240,6 +241,9 @@
 			// If we removed a file before the active file, decrement the index
 			activeFileIndex--;
 		}
+
+		// Save the new state after removing the file
+		saveEditorState();
 	}
 
 	function changeLanguage() {
@@ -496,6 +500,35 @@ print(df)`;
 		}
 	}
 
+	async function restoreLastClosedTab() {
+		const lastTab = closedTabs.restoreLastTab();
+		if (!lastTab) return; // No tabs to restore
+
+		// Create new file object
+		const newFile: EditorFile = {
+			name: lastTab.name,
+			content: lastTab.content,
+			type: lastTab.type,
+			datasetPath: lastTab.datasetPath || '',  // Ensure it's always a string
+			datasetName: lastTab.datasetName
+		};
+
+		// Add the file
+		files = [...files, newFile];
+		activeFileIndex = files.length - 1;
+
+		// Set up model for code or context files
+		if ((lastTab.type === 'code' || lastTab.type === 'context') && monaco && editor) {
+			const model = monaco.editor.createModel(
+				lastTab.content,
+				lastTab.type === 'context' ? 'markdown' : 'python'
+			);
+			files[activeFileIndex].model = model;
+			editor.setModel(model);
+			updateEditorTheme();
+		}
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
 		// Command/Ctrl + Shift + P (Polars)
 		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'p' || event.key === 'P')) {
@@ -525,35 +558,6 @@ print(df)`;
 		if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'r') {
 			event.preventDefault();
 			restoreLastClosedTab();
-		}
-	}
-
-	async function restoreLastClosedTab() {
-		const lastTab = closedTabs.restoreLastTab();
-		if (!lastTab) return; // No tabs to restore
-
-		// Create new file object
-		const newFile: EditorFile = {
-			name: lastTab.name,
-			content: lastTab.content,
-			type: lastTab.type,
-			datasetPath: lastTab.datasetPath || '',  // Ensure it's always a string
-			datasetName: lastTab.datasetName
-		};
-
-		// Add the file
-		files = [...files, newFile];
-		activeFileIndex = files.length - 1;
-
-		// Set up model for code or context files
-		if ((lastTab.type === 'code' || lastTab.type === 'context') && monaco && editor) {
-			const model = monaco.editor.createModel(
-				lastTab.content,
-				lastTab.type === 'context' ? 'markdown' : 'python'
-			);
-			files[activeFileIndex].model = model;
-			editor.setModel(model);
-			updateEditorTheme();
 		}
 	}
 
