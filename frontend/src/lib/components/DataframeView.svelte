@@ -17,7 +17,8 @@
         if (value === null || value === undefined) return '-';
         if (typeof value === 'boolean') return value.toString();
         if (typeof value === 'number') return value.toLocaleString();
-        return String(value);
+        const stringValue = String(value);
+        return stringValue.length > 64 ? stringValue.slice(0, 61) + '...' : stringValue;
     }
 
     async function loadDataset() {
@@ -146,8 +147,13 @@
                         <tr class="hover:bg-[#2a2a2a] {i % 2 === 0 ? 'bg-[#111111]' : 'bg-[#111111]'}">
                             {#each columns as column}
                                 {@const value = row[column]}
-                                <td class="px-4 py-2 text-xs border-b border-r border-[#333333] last:border-r-0 {isNumeric(value) ? 'font-mono text-right' : ''}">
-                                    {formatCell(value)}
+                                {@const formattedValue = formatCell(value)}
+                                <td 
+                                    class="px-4 py-2 text-xs border-b border-r border-[#333333] last:border-r-0 max-w-[512px] overflow-hidden {isNumeric(value) ? 'font-mono text-right' : ''}"
+                                    style="text-overflow: ellipsis; white-space: nowrap;"
+                                    title={String(value)}
+                                >
+                                    {formattedValue}
                                 </td>
                             {/each}
                         </tr>

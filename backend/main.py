@@ -32,23 +32,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def validate_cloud_credentials():
-    """Validate cloud credentials based on enabled providers in config"""
-    cloud_providers = {
-        'AWS_ENABLED': 'AWS_ACCESS_KEY_ID',
-        'GCP_ENABLED': 'GOOGLE_APPLICATION_CREDENTIALS',
-        'R2_ENABLED': 'R2_ACCESS_KEY_ID',
-        'AZURE_ENABLED': 'AZURE_STORAGE_CONNECTION_STRING'
-    }
-    
-    for provider_flag, credential_var in cloud_providers.items():
-        if os.getenv(provider_flag, '').lower() == 'true':
-            if not os.getenv(credential_var):
-                print(f"Warning: {credential_var} not found but {provider_flag.split('_')[0]} is enabled")
-
-# Load environment variables and validate cloud credentials
+# Load environment variables from .env file
 load_dotenv()
-validate_cloud_credentials()
 
 class CodeRequest(BaseModel):
     code: str = Field(..., description="Python code to execute")
