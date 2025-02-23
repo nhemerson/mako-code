@@ -68,17 +68,17 @@
     });
 </script>
 
-<div class="grid grid-rows-[1fr,auto,1fr] h-full bg-[#1a1a1a]">
+<div class="grid grid-rows-[2fr,auto,1fr] h-full bg-[#111111]">
     <!-- Top section: Dataframe -->
     <div class="overflow-hidden">
         <DataframeView {datasetPath} />
     </div>
 
     <!-- Middle section: Divider -->
-    <div class="h-[6px] bg-[#2A2A2A]" />
+    <div class="h-[6px] bg-[#2A2A2A] border-t border-[#333333]"></div>
 
     <!-- Bottom section: Schema and Context -->
-    <div class="grid grid-cols-2 overflow-hidden">
+    <div class="grid grid-cols-2 overflow-hidden" >
         <!-- Schema -->
         <div class="p-4 overflow-auto border-r border-[#333333]">
             <h3 class="text-white text-sm font-semibold mb-4">Dataset Schema</h3>

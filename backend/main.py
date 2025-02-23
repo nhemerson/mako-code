@@ -1,10 +1,8 @@
 from fastapi import FastAPI, HTTPException, UploadFile, Form, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
-import sys
 from io import StringIO
 import contextlib
-import math
 import ast
 import polars as pl
 from functions.ingestion import DATASET_DIR
@@ -15,7 +13,6 @@ from pathlib import Path
 import subprocess
 import os
 from dotenv import load_dotenv
-import json
 import functions.mako
 
 app = FastAPI(
