@@ -104,7 +104,7 @@
         </div>
     {:else}
         <!-- Header with controls -->
-        <div class="flex justify-between items-center px-4 py-2 border-b border-[#333333] bg-[#1e1e1e]">
+        <div class="flex justify-between items-center px-4 py-2 border-b border-t border-[#333333] bg-[#1a1a1a]">
             <div class="text-sm text-gray-400">
                 Showing rows {startRow}-{endRow} of {data.length}
             </div>
@@ -135,7 +135,7 @@
                 <thead class="sticky top-0 z-10 bg-[#242424] shadow-sm">
                     <tr>
                         {#each columns as column}
-                            <th class="px-4 py-2 text-left text-sm font-semibold border-b border-r border-[#333333] text-gray-100 last:border-r-0">
+                            <th class="px-4 py-2 text-left text-xs font-semibold border-b border-r border-[#333333] text-gray-100 last:border-r-0">
                                 {column}
                             </th>
                         {/each}
@@ -143,10 +143,10 @@
                 </thead>
                 <tbody>
                     {#each displayData as row, i}
-                        <tr class="hover:bg-[#2a2a2a] {i % 2 === 0 ? 'bg-[#1e1e1e]' : 'bg-[#1c1c1c]'}">
+                        <tr class="hover:bg-[#2a2a2a] {i % 2 === 0 ? 'bg-[#111111]' : 'bg-[#111111]'}">
                             {#each columns as column}
                                 {@const value = row[column]}
-                                <td class="px-4 py-2 text-sm border-b border-r border-[#333333] last:border-r-0 {isNumeric(value) ? 'font-mono text-right' : ''}">
+                                <td class="px-4 py-2 text-xs border-b border-r border-[#333333] last:border-r-0 {isNumeric(value) ? 'font-mono text-right' : ''}">
                                     {formatCell(value)}
                                 </td>
                             {/each}
