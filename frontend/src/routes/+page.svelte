@@ -7,6 +7,7 @@
 	import { closedTabs } from '$lib/stores/editorStore';
 	import { codeTemplates } from '$lib/templates/codeTemplates';
 	import RightSidebar from '$lib/components/RightSidebar.svelte';
+	import SaveFunctionModal from '$lib/components/SaveFunctionModal.svelte';
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
 	let consoleEditor: Monaco.editor.IStandaloneCodeEditor;
@@ -24,6 +25,7 @@
 	let showDropdownForDataset: string | null = null;  // Track which dataset's dropdown is open
 	let isSidebarCollapsed = true;  // New state for sidebar collapse
 	let draggedTabIndex: number | null = null;
+	let showSaveFunctionModal = false;
 
 	const languages = [
 		{ id: 'python' as const, name: 'Python' },
@@ -250,7 +252,6 @@
 		const model = editor.getModel();
 		if (model) {
 			monaco.editor.setModelLanguage(model, selectedLanguage);
-			editor.setValue(sampleCode[selectedLanguage]);
 		}
 	}
 
@@ -558,6 +559,27 @@ print(df)`;
 		if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'r') {
 			event.preventDefault();
 			restoreLastClosedTab();
+		}
+
+		// Add new shortcut for Save Function (Cmd/Ctrl + Shift + F)
+		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'f' || event.key === 'F')) {
+			event.preventDefault();
+			event.stopPropagation();
+			
+			// Get selected code or current function
+			let selectedCode = '';
+			if (editor && files[activeFileIndex].type === 'code') {
+				const selection = editor.getSelection();
+				if (selection && !selection.isEmpty()) {
+					selectedCode = editor.getModel()?.getValueInRange(selection) || '';
+				} else {
+					// If no selection, try to get the current function
+					selectedCode = editor.getValue();
+				}
+			}
+			
+			showSaveFunctionModal = true;
+			return false;
 		}
 	}
 
@@ -1013,6 +1035,12 @@ print(df)`;
 <DataImportModal
 	show={showDataImportModal}
 	onClose={handleDataImportClose}
+/>
+
+<SaveFunctionModal
+	show={showSaveFunctionModal}
+	onClose={() => showSaveFunctionModal = false}
+	initialCode={editor?.getSelection()?.isEmpty() ? '' : editor?.getModel()?.getValueInRange(editor.getSelection()!) || ''}
 />
 
 <svelte:window 

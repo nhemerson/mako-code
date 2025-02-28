@@ -13,3 +13,13 @@ def custom_function(var_1: str) -> pl.DataFrame:
     print(f"data: {datetime.now()}")
     return pl.DataFrame()
 
+
+
+"""
+test
+
+Tags: test
+Language: python
+"""
+def test_func():
+    print("Test")

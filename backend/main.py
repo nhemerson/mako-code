@@ -14,6 +14,7 @@ import subprocess
 import os
 from dotenv import load_dotenv
 import functions.mako
+from functions.mako import save_function
 
 app = FastAPI(
     title="Mako API",
@@ -724,6 +725,29 @@ async def get_context(path: str):
         return content
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/save-function")
+async def save_user_function(data: dict):
+    success, error = save_function(
+        name=data['name'],
+        code=data['code'],
+        description=data['description'],
+        tags=data['tags'],
+        language=data['language']
+    )
+    
+    if success:
+        return {"success": True}
+    else:
+        return {"success": False, "error": error}
+
+@app.get("/api/list-functions")
+async def list_functions():
+    try:
+        functions = mako.list_saved_functions()
+        return {"success": True, "functions": functions}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
