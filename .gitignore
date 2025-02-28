@@ -59,6 +59,7 @@ open_source_considerations.md
 docs/
 directions/
 repos.md
+backend/functions/user_defined.py
 
 # Ignore user-specific config files
 config/mako.conf

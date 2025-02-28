@@ -77,7 +77,7 @@
                 >
                     <Code size={24} class="shrink-0" />
                     <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75 text-sm" class:opacity-0={isCollapsed}>
-                        Build
+                        Functions
                     </span>
                 </button>
             </li>
@@ -88,7 +88,7 @@
                 >
                     <Settings size={24} class="shrink-0" />
                     <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75 text-sm" class:opacity-0={isCollapsed}>
-                        Settings
+                        Shortcuts
                     </span>
                 </button>
             </li>
