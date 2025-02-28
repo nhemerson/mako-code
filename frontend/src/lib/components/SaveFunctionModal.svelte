@@ -122,7 +122,7 @@
 
 {#if show}
     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-[#1a1a1a] rounded-lg w-[800px] max-h-[80vh] overflow-y-auto">
+        <div class="bg-[#1a1a1a] rounded-lg w-[750px] max-h-[80vh] overflow-y-auto">
             <div class="p-6">
                 <h2 class="text-xl text-white mb-4">Save Function</h2>
                 
@@ -147,7 +147,7 @@
                         <label class="block text-gray-400 mb-1">Code</label>
                         <div 
                             bind:this={editorContainer}
-                            class="w-full h-[300px] rounded border border-[#333333] overflow-hidden"
+                            class="w-full h-[250px] rounded border border-[#333333] overflow-hidden"
                         ></div>
                     </div>
 
@@ -156,12 +156,12 @@
                         <textarea
                             bind:value={description}
                             class="w-full bg-[#252525] text-white p-2 rounded border border-[#333333] focus:border-blue-500 focus:outline-none"
-                            rows="3"
+                            rows="1"
                             placeholder="Describe what your function does..."
                         ></textarea>
                     </div>
 
-                    <div>
+                    <!-- <div>
                         <label class="block text-gray-400 mb-1">Tags (comma-separated)</label>
                         <input
                             type="text"
@@ -169,9 +169,9 @@
                             class="w-full bg-[#252525] text-white p-2 rounded border border-[#333333] focus:border-blue-500 focus:outline-none"
                             placeholder="data, analysis, helper"
                         />
-                    </div>
+                    </div> -->
 
-                    <div>
+                    <!-- <div>
                         <label class="block text-gray-400 mb-1">Language</label>
                         <select
                             bind:value={language}
@@ -181,7 +181,7 @@
                                 <option value={lang.id}>{lang.name}</option>
                             {/each}
                         </select>
-                    </div>
+                    </div> -->
                 </div>
 
                 <div class="flex justify-end space-x-3 mt-6">

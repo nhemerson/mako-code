@@ -27,9 +27,10 @@
             ]
         },
         {
-            category: "Context Files",
+            category: "Save Functions",
             items: [
-                { keys: ["⌘/Ctrl", "S"], description: "Save context file" }
+                { keys: ["⌘/Ctrl", "S"], description: "Save context file" },
+                { keys: ["⌘/Ctrl", "Shift", "F"], description: "Save new function" }
             ]
         }
     ];
@@ -67,9 +68,9 @@
                 </button>
             </div>
 
-            <div class="space-y-8">
+            <div class="bg-[#1A1A1A] rounded-lg p-6 space-y-8">
                 {#each shortcuts as category}
-                    <section class="bg-[#1A1A1A] rounded-lg p-6">
+                    <div>
                         <h2 class="text-xs font-medium text-white mb-4">{category.category}</h2>
                         <div class="space-y-4">
                             {#each category.items as shortcut}
@@ -88,13 +89,12 @@
                                 </div>
                             {/each}
                         </div>
-                    </section>
+                    </div>
                 {/each}
             </div>
         </div>
     </div>
 {/if}
-
 <style>
     kbd {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
