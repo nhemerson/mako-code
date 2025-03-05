@@ -1023,11 +1023,11 @@ print(df)`;
 		<RightSidebar 
 			isSidebarCollapsed={isSidebarCollapsed}
 			datasets={datasets}
-			showDataImportModal={showDataImportModal}
 			addDatasetTab={addDatasetTab}
 			deleteDataset={deleteDataset}
 			addDatasetContext={addDatasetContext}
 			analyzeDataset={analyzeDataset}
+			on:importClick={() => showDataImportModal = true}
 		/>
 	</div>
 </div>

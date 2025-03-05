@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	// import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
+
+	const dispatch = createEventDispatcher();
 
 	export let isSidebarCollapsed: boolean;
 	export let datasets: Array<{ name: string; path: string }>;
-	export let showDataImportModal: boolean;
 	export let addDatasetTab: (name: string, path: string) => void;
 	export let deleteDataset: (path: string) => void;
 	export let addDatasetContext: (dataset: { name: string; path: string }) => void;
@@ -51,6 +52,10 @@
 		action(dataset);
 		showDropdownForDataset = null;  // Close dropdown after action
 	}
+
+	function handleImportClick() {
+		dispatch('importClick');
+	}
 </script>
 
 <div class="{isSidebarCollapsed ? 'w-[50px]' : 'w-[20%]'} border-l border-[#333333] flex flex-col bg-[#181818] p-4 relative transition-all duration-150 ease-in-out">
@@ -81,7 +86,7 @@
 		<div class="space-y-4">
 			<button
 				class="w-full px-4 py-2 bg-[#181818] hover:bg-[#222222] text-white rounded-lg transition-colors text-xs flex items-center justify-center gap-2 border border-[#333333]"
-				on:click={() => showDataImportModal = true}
+				on:click={handleImportClick}
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
