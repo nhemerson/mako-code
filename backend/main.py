@@ -13,8 +13,9 @@ from pathlib import Path
 import subprocess
 import os
 from dotenv import load_dotenv
-import functions.mako
+from functions import mako
 from functions.mako import save_function
+from datetime import datetime
 
 app = FastAPI(
     title="Mako API",
@@ -244,7 +245,7 @@ async def execute_code(request: CodeRequest):
     if request.code.strip().startswith('@sql'):
         try:
             # Execute SQL using mako function
-            result = functions.mako.execute_sql(request.code)
+            result = mako.execute_sql(request.code)
             return {
                 "success": True,
                 "output": str(result),
@@ -726,28 +727,93 @@ async def get_context(path: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/save-function")
-async def save_user_function(data: dict):
-    success, error = save_function(
-        name=data['name'],
-        code=data['code'],
-        description=data['description'],
-        tags=data['tags'],
-        language=data['language']
-    )
-    
-    if success:
-        return {"success": True}
-    else:
-        return {"success": False, "error": error}
+class UserFunction(BaseModel):
+    """Model for user-defined functions"""
+    name: str = Field(..., description="Name of the function")
+    code: str = Field(..., description="The function code")
+    description: str = Field(default="", description="Description of what the function does")
+    tags: List[str] = Field(default_factory=list, description="List of tags for categorizing the function")
+    language: str = Field(default="python", description="Programming language of the function")
+    created_at: datetime = Field(default_factory=datetime.now, description="When the function was created")
+    updated_at: datetime = Field(default_factory=datetime.now, description="When the function was last updated")
 
-@app.get("/api/list-functions")
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "example_function",
+                "code": "def example_function(x: int) -> int:\n    return x * 2",
+                "description": "A function that doubles its input",
+                "tags": ["math", "utility"],
+                "language": "python"
+            }
+        }
+
+class SaveFunctionRequest(BaseModel):
+    """Request model for saving a function"""
+    name: str = Field(..., description="Name of the function")
+    code: str = Field(..., description="The function code")
+    description: str = Field(default="", description="Description of what the function does")
+    tags: List[str] = Field(default_factory=list, description="List of tags for categorizing the function")
+    language: str = Field(default="python", description="Programming language of the function")
+
+class SaveFunctionResponse(BaseModel):
+    """Response model for save function endpoint"""
+    success: bool
+    error: Optional[str] = None
+    function: Optional[UserFunction] = None
+
+class ListFunctionsResponse(BaseModel):
+    """Response model for list functions endpoint"""
+    success: bool
+    error: Optional[str] = None
+    functions: List[UserFunction] = Field(default_factory=list)
+
+@app.post("/api/save-function", response_model=SaveFunctionResponse)
+async def save_user_function(data: SaveFunctionRequest):
+    try:
+        success, error = save_function(
+            name=data.name,
+            code=data.code,
+            description=data.description,
+            tags=data.tags,
+            language=data.language
+        )
+        
+        if success:
+            # Create UserFunction instance with the saved data
+            function = UserFunction(
+                name=data.name,
+                code=data.code,
+                description=data.description,
+                tags=data.tags,
+                language=data.language
+            )
+            return SaveFunctionResponse(success=True, function=function)
+        else:
+            return SaveFunctionResponse(success=False, error=error)
+    except Exception as e:
+        return SaveFunctionResponse(success=False, error=str(e))
+
+@app.get("/api/list-functions", response_model=ListFunctionsResponse)
 async def list_functions():
     try:
-        functions = mako.list_saved_functions()
-        return {"success": True, "functions": functions}
+        functions_data = mako.list_saved_functions()
+        # Convert the raw function data to UserFunction instances
+        functions = [
+            UserFunction(
+                name=func["name"],
+                code=func.get("code", ""),  # Add code if available
+                description=func.get("description", ""),
+                tags=func.get("tags", []),
+                language=func.get("language", "python"),
+                created_at=func.get("created_at", datetime.now()),
+                updated_at=func.get("updated_at", datetime.now())
+            )
+            for func in functions_data
+        ]
+        return ListFunctionsResponse(success=True, functions=functions)
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return ListFunctionsResponse(success=False, error=str(e))
 
 if __name__ == "__main__":
     import uvicorn

@@ -5,10 +5,12 @@
     import { hasUnsavedChanges } from '$lib/stores/navigation';
     import ConfirmNavigationModal from './ConfirmNavigationModal.svelte';
     import SettingsModal from './SettingsModal.svelte';
+    import FunctionsModal from './FunctionsModal.svelte';
     
     let isCollapsed = true;
     let showConfirmModal = false;
     let showSettingsModal = false;
+    let showFunctionsModal = false;
     let pendingNavigation: string | null = null;
 
     function handleNavigation(href: string) {
@@ -38,6 +40,11 @@
     show={showConfirmModal}
     onConfirm={confirmNavigation}
     onCancel={cancelNavigation}
+/>
+
+<FunctionsModal 
+    show={showFunctionsModal}
+    onClose={() => showFunctionsModal = false}
 />
 
 <SettingsModal
@@ -72,7 +79,7 @@
         <ul class="space-y-2">
             <li>
                 <button 
-                    on:click={() => handleNavigation('/')}
+                    on:click={() => showFunctionsModal = true}
                     class="w-full flex items-center gap-4 rounded-lg hover:bg-[#222222] transition-colors {$page.url.pathname === '/' ? 'bg-[#222222]' : ''} {isCollapsed ? 'px-2' : 'px-4'} py-3"
                 >
                     <Code size={24} class="shrink-0" />
