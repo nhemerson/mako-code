@@ -27,6 +27,12 @@
             ]
         },
         {
+            category: "Data Management",
+            items: [
+                { keys: ["⌘/Ctrl", "Shift", "I"], description: "Open Data Import" }
+            ]
+        },
+        {
             category: "Save Functions",
             items: [
                 { keys: ["⌘/Ctrl", "S"], description: "Save context file" },

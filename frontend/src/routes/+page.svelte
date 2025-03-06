@@ -581,6 +581,14 @@ print(df)`;
 			showSaveFunctionModal = true;
 			return false;
 		}
+
+		// Add new shortcut for Data Import (Cmd/Ctrl + Shift + I)
+		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'i' || event.key === 'I')) {
+			event.preventDefault();
+			event.stopPropagation();
+			showDataImportModal = true;
+			return false;
+		}
 	}
 
 	// Add new helper function to create tabs with specific content
