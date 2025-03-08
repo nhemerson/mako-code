@@ -26,7 +26,6 @@ temp/
 
 # Node/Frontend
 node_modules/
-.nvmrc
 !node-version.template
 .svelte-kit/
 package-lock.json
