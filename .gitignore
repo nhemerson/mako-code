@@ -26,7 +26,6 @@ temp/
 
 # Node/Frontend
 node_modules/
-.nvmrc
 !node-version.template
 .svelte-kit/
 package-lock.json
@@ -60,6 +59,7 @@ docs/
 directions/
 repos.md
 backend/functions/user_defined.py
+commands.md
 
 # Ignore user-specific config files
 config/mako.conf

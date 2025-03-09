@@ -3,7 +3,7 @@ fastapi==0.109.0
 uvicorn==0.27.0
 pydantic==2.6.1
 python-multipart==0.0.6
-RestrictedPython==6.3
+RestrictedPython==6.2
 polars==1.22.0
 pyarrow==14.0.2
 python-dotenv==1.0.0

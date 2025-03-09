@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Function to check if a command exists
 command_exists() {
@@ -39,6 +40,44 @@ check_node_version() {
     fi
 }
 
+install_uv() {
+    # Ensure uv is installed
+    if ! command_exists uv; then
+        echo "Installing uv..."
+        curl -Lf https://astral.sh/uv/install.sh | sh
+        source $HOME/.local/bin/env
+    fi
+}
+
+prepare_backend() {
+    echo "Preparing backend"
+    cd backend
+    # Create virtual environment if it doesn't exist
+    if [ ! -d ".venv" ]; then
+        echo "Creating Python virtual environment..."
+        # Remove any existing partial .venv
+        rm -rf .venv
+        
+        install_uv
+        
+        # Use uv to create venv with Python 3.11
+        echo "Creating venv with Python 3.11..."
+        uv venv .venv --python=3.11
+        
+        if [ ! -d ".venv" ]; then
+            echo "Error: Failed to create virtual environment"
+            exit 1
+        fi
+    fi
+
+    # Always check and install requirements
+    echo "Checking and updating Python dependencies..."
+    rm -f .venv/installed  # Remove the installed marker
+    uv pip install --force-reinstall -r requirements.txt >/dev/null 2>&1  # Suppress output
+    touch .venv/installed
+    cd ..
+}
+
 # Function to start the backend server
 start_backend() {
     echo "Starting backend server..."
@@ -47,29 +86,7 @@ start_backend() {
     # Kill any existing uvicorn processes
     echo "Checking for existing backend processes..."
     pkill -f "uvicorn main:app" || true
-    
-    # Create virtual environment if it doesn't exist
-    if [ ! -d ".venv" ]; then
-        echo "Creating Python virtual environment..."
-        # Remove any existing partial .venv
-        rm -rf .venv
-        
-        # Ensure uv is installed
-        if ! command_exists uv; then
-            echo "Installing uv..."
-            curl -Lf https://astral.sh/uv/install.sh | sh
-        fi
-        
-        # Use uv to create venv with Python 3.11
-        echo "Creating venv with Python 3.11..."
-        ~/.cargo/bin/uv venv .venv --python=3.11
-        
-        if [ ! -d ".venv" ]; then
-            echo "Error: Failed to create virtual environment"
-            exit 1
-        fi
-    fi
-    
+
     # Activate virtual environment
     if [ -f ".venv/Scripts/activate" ]; then
         source .venv/Scripts/activate  # Windows
@@ -77,17 +94,11 @@ start_backend() {
         source .venv/bin/activate      # Unix/MacOS
     fi
     
-    # Always check and install requirements
-    echo "Checking and updating Python dependencies..."
-    rm -f .venv/installed  # Remove the installed marker
-    uv pip install --force-reinstall -r requirements.txt >/dev/null 2>&1  # Suppress output
-    touch .venv/installed
-    
     # Small delay to ensure previous process is fully terminated
     sleep 2
     
-    # Now calls the startup.sh and captures its exit status
-    ./startup.sh
+    # Now calls the startup and captures its exit status
+    ./startup
     BACKEND_STATUS=$?
     
     if [ $BACKEND_STATUS -ne 0 ]; then
@@ -99,18 +110,23 @@ start_backend() {
     cd ..
 }
 
+prepare_frontend() {
+    echo "Preparing frontend"
+    cd frontend
+    # Install dependencies if needed
+    if [ ! -d "node_modules" ]; then
+        echo "Installing Node.js dependencies..."
+        npm ci
+    fi
+    cd ..
+}
+
 # Function to start the frontend server
 start_frontend() {
     # Only start frontend if backend started successfully
     if [ $BACKEND_STATUS -eq 0 ]; then
         echo "Starting frontend server..."
         cd frontend
-        
-        # Install dependencies if needed
-        if [ ! -d "node_modules" ]; then
-            echo "Installing Node.js dependencies..."
-            npm install
-        fi
         
         # Start the frontend server
         npm run dev &
@@ -131,6 +147,20 @@ open_browser() {
     esac
 }
 
+prepare() {
+    # Check requirements
+    # Backend
+    check_python_version
+    prepare_backend
+    # Frontend
+    check_node_version
+    prepare_frontend
+}
+
+# docker_run() {
+#     # start_backend
+# }
+
 # Main script
 case "$1" in
     "run")
@@ -140,9 +170,7 @@ case "$1" in
         pkill -f "node.*vite" || true
         sleep 2
         
-        # Check requirements
-        check_python_version
-        check_node_version
+        prepare
         
         # Start servers and track status
         start_backend
@@ -166,6 +194,12 @@ case "$1" in
             echo "Mako failed to start due to backend errors"
             exit 1
         fi
+        ;;
+    "prepare")
+        prepare
+        ;;
+    "docker_run")
+        docker_run
         ;;
     "clean")
         echo "Cleaning up Mako environment..."
