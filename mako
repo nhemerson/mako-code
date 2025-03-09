@@ -41,12 +41,12 @@ check_node_version() {
 }
 
 install_uv() {
-        # Ensure uv is installed
-        if ! command_exists uv; then
-            echo "Installing uv..."
-            curl -Lf https://astral.sh/uv/install.sh | sh
-            source $HOME/.local/bin/env
-        fi
+    # Ensure uv is installed
+    if ! command_exists uv; then
+        echo "Installing uv..."
+        curl -Lf https://astral.sh/uv/install.sh | sh
+        source $HOME/.local/bin/env
+    fi
 }
 
 prepare_backend() {
@@ -87,7 +87,6 @@ start_backend() {
     echo "Checking for existing backend processes..."
     pkill -f "uvicorn main:app" || true
 
-    
     # Activate virtual environment
     if [ -f ".venv/Scripts/activate" ]; then
         source .venv/Scripts/activate  # Windows
@@ -98,8 +97,8 @@ start_backend() {
     # Small delay to ensure previous process is fully terminated
     sleep 2
     
-    # Now calls the startup.sh and captures its exit status
-    ./startup.sh
+    # Now calls the startup and captures its exit status
+    ./startup
     BACKEND_STATUS=$?
     
     if [ $BACKEND_STATUS -ne 0 ]; then
@@ -149,18 +148,18 @@ open_browser() {
 }
 
 prepare() {
-        # Check requirements
-        # Backend
-        check_python_version
-        prepare_backend
-        # Frontend
-        check_node_version
-        prepare_frontend
+    # Check requirements
+    # Backend
+    check_python_version
+    prepare_backend
+    # Frontend
+    check_node_version
+    prepare_frontend
 }
 
-docker_run() {
-    # start_backend
-}
+# docker_run() {
+#     # start_backend
+# }
 
 # Main script
 case "$1" in
