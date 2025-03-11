@@ -38,7 +38,6 @@ However, it is easy to add more modules as needed. The goals is to provide a con
 ### Backend
 - FastAPI
 - Polars for data processing
-- DuckDB for SQL queries
 - Ruff for code linting
 - Python standard library
 
