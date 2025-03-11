@@ -46,7 +46,7 @@ However, it is easy to add more modules as needed. The goals is to provide a con
 
 Prerequisites:
 - Python 3.11+
-- Node.js 18+
+- Node.js 20+
 - uv package manager (for Python dependencies)
 
 Launch development environment:
@@ -59,35 +59,6 @@ This script will:
 - Install dependencies using uv
 - Start both frontend and backend servers
 - Automatically open your browser
-
-## Configuration Setup
-
-1. **Copy the example config**:
-   ```bash
-   cp config/mako.conf.example config/mako.conf
-   ```
-
-2. **Modify settings** in `config/mako.conf`:
-   ```bash
-   # Development settings
-   ENVIRONMENT="development"
-   LOG_LEVEL="debug"
-   
-   # Production adjustments
-   # HOST="0.0.0.0"
-   # ENVIRONMENT="production"
-   # DEV_RELOAD="false"
-   ```
-
-3. **Secure sensitive values** using environment variables:
-   ```bash
-   export MAKO_API_KEY="your-secret-key"
-   ```
-
-4. **Run the application**:
-   ```bash
-   ./mako run
-   ```
 
 ## Contributing
 
