@@ -5,7 +5,7 @@ import { writable } from 'svelte/store';
 interface ClosedTab {
     name: string;
     content: string;
-    type: 'code' | 'dataset' | 'context';
+    type: 'code' | 'dataset' | 'context' | 'home';
     datasetPath?: string;
     datasetName?: string;
     timestamp: number;

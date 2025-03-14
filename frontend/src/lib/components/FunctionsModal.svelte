@@ -1,5 +1,6 @@
 <script lang="ts">
     import { X } from 'lucide-svelte';
+    import { fade } from 'svelte/transition';
 
     export let show = false;
     export let onClose: () => void;
@@ -44,7 +45,10 @@
 </script>
 
 {#if show}
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        transition:fade={{ duration: 0 }}
+        on:click|self={onClose} 
+    >
         <div class="bg-[#1a1a1a] rounded-lg w-[600px] border border-[#333333]">
             <!-- Header -->
             <div class="flex items-center justify-between p-4 border-b border-[#333333]">

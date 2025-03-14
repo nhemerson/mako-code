@@ -1,6 +1,5 @@
 <script lang="ts">
     import { fade } from 'svelte/transition';
-    
     export let show = false;
     export let onClose: () => void;
 
@@ -148,7 +147,8 @@
 {#if show}
     <div 
         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-        transition:fade
+        transition:fade={{ duration: 0 }}
+        on:click|self={onClose}
     >
         <div 
             class="bg-[#222222] rounded-lg p-6 max-w-xl w-full mx-4 shadow-lg border border-[#333333]"
