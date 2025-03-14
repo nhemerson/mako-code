@@ -23,7 +23,8 @@
         {
             category: "Navigation",
             items: [
-                { keys: ["⌘/Ctrl", "D"], description: "Toggle Data Management sidebar" }
+                { keys: ["⌘/Ctrl", "D"], description: "Toggle Data Management sidebar" },
+                { keys: ["⌘/Ctrl", "Shift", "H"], description: "Open Home tab" }
             ]
         },
         {

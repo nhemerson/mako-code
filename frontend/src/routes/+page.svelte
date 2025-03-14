@@ -38,16 +38,22 @@
 		name: string;
 		content: string;
 		model?: Monaco.editor.ITextModel;
-		type: 'code' | 'dataset' | 'context';
+		type: 'code' | 'dataset' | 'context' | 'home';
 		datasetPath: string;
 		datasetName?: string;
 	}
 
 	let files: EditorFile[] = [
+		{
+			name: 'Home',
+			content: '',
+			type: 'home' as const,
+			datasetPath: ''
+		},
 		{ 
 			name: 'main.py', 
 			content: '# Python example\nprint("Hello World!")', 
-			type: 'code',
+			type: 'code' as const,
 			datasetPath: '' 
 		},
 	];
@@ -83,13 +89,35 @@
 			
 			if (savedFiles) {
 				const parsedFiles = JSON.parse(savedFiles);
-				files = parsedFiles.map((file: any) => ({
+				
+				// Check if Home tab exists in saved files
+				const hasHomeTab = parsedFiles.some((file: any) => file.type === 'home');
+				
+				// Map the saved files
+				let restoredFiles = parsedFiles.map((file: any) => ({
 					...file,
 					datasetPath: file.datasetPath || ''
 				}));
 				
+				// If no Home tab, add it as the first tab
+				if (!hasHomeTab) {
+					restoredFiles = [
+						{
+							name: 'Home',
+							content: '',
+							type: 'home' as const,
+							datasetPath: ''
+						},
+						...restoredFiles
+					];
+				}
+				
+				files = restoredFiles;
+				
 				if (savedActiveIndex) {
-					activeFileIndex = parseInt(savedActiveIndex, 10);
+					// If we added a Home tab and it wasn't there before, adjust the active index
+					const activeIdx = parseInt(savedActiveIndex, 10);
+					activeFileIndex = hasHomeTab ? activeIdx : activeIdx + 1;
 				}
 				if (savedEditorHeight) {
 					editorHeight = savedEditorHeight;
@@ -103,6 +131,20 @@
 					);
 					files[activeFileIndex].model = model;
 					editor.setModel(model);
+				}
+			} else {
+				// If no saved state, ensure we have the Home tab
+				if (!files.some(file => file.type === 'home')) {
+					files = [
+						{
+							name: 'Home',
+							content: '',
+							type: 'home' as const,
+							datasetPath: ''
+						},
+						...files
+					];
+					activeFileIndex = 0;
 				}
 			}
 		} catch (error) {
@@ -157,7 +199,7 @@
 		const newFile: EditorFile = { 
 			name: newFileName, 
 			content: '# New file', 
-			type: 'code',
+			type: 'code' as const,
 			datasetPath: '' 
 		};
 		files = [...files, newFile];
@@ -198,6 +240,11 @@
 			requestAnimationFrame(() => {
 				editor?.layout();
 			});
+		}
+		// If switching to home tab, no need to set up a model
+		else if (files[activeFileIndex].type === 'home') {
+			// Clear the editor model
+			editor.setModel(null);
 		}
 
 		// Save state after switching files
@@ -328,7 +375,7 @@
 		const newFile: EditorFile = { 
 			name: name,
 			content: '',  // Dataset tabs don't need content
-			type: 'dataset',
+			type: 'dataset' as const,
 			datasetPath: path,
 			datasetName: name.replace('.parquet', '')
 		};
@@ -386,7 +433,7 @@ print(df)`;
 		files = [...files, { 
 			name: `analyze_${dataset.name}.py`, 
 			content: analysisCode, 
-			type: 'code',
+			type: 'code' as const,
 			datasetPath: '' 
 		}];
 		activeFileIndex = files.length - 1;
@@ -439,7 +486,7 @@ print(df)`;
 			files = [...files, { 
 				name: contextFileName, 
 				content: initialContent,
-				type: 'context',
+				type: 'context' as const,
 				datasetPath: dataset.path,
 				datasetName: dataset.name // Add this to track which dataset this context belongs to
 			}];
@@ -509,7 +556,7 @@ print(df)`;
 		const newFile: EditorFile = {
 			name: lastTab.name,
 			content: lastTab.content,
-			type: lastTab.type,
+			type: lastTab.type as 'code' | 'dataset' | 'context' | 'home',
 			datasetPath: lastTab.datasetPath || '',  // Ensure it's always a string
 			datasetName: lastTab.datasetName
 		};
@@ -530,7 +577,41 @@ print(df)`;
 		}
 	}
 
+	// Add function to create or open Home tab
+	function openHomeTab() {
+		// Check if Home tab already exists
+		const homeTabIndex = files.findIndex(file => file.type === 'home');
+		
+		if (homeTabIndex !== -1) {
+			// If Home tab exists, switch to it
+			activeFileIndex = homeTabIndex;
+		} else {
+			// If Home tab doesn't exist, create it
+			const homeTab: EditorFile = {
+				name: 'Home',
+				content: '',
+				type: 'home' as const,
+				datasetPath: ''
+			};
+			
+			// Add the Home tab as the first tab
+			files = [homeTab, ...files];
+			activeFileIndex = 0;
+			
+			// Save state after adding new file
+			saveEditorState();
+		}
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
+		// Command/Ctrl + Shift + H (Home)
+		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'h' || event.key === 'H')) {
+			event.preventDefault();
+			event.stopPropagation();
+			openHomeTab();
+			return false;
+		}
+		
 		// Command/Ctrl + Shift + P (Polars)
 		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'p' || event.key === 'P')) {
 			event.preventDefault();
@@ -599,7 +680,7 @@ print(df)`;
 			content: content === '@sql\n' ? 
 				'@sql\n\n--save_as:\n\n' : 
 				content,
-			type: 'code',
+			type: 'code' as const,
 			datasetPath: ''  // Ensure this is always a string
 		};
 
@@ -744,14 +825,36 @@ print(df)`;
 		// Restore editor state before creating initial model
 		restoreEditorState();
 		
+		// Ensure Home tab exists after restoring state
+		if (!files.some(file => file.type === 'home')) {
+			files = [
+				{
+					name: 'Home',
+					content: '',
+					type: 'home' as const,
+					datasetPath: ''
+				},
+				...files
+			];
+			// Adjust active file index if needed
+			activeFileIndex++;
+		}
+		
 		// Only create initial model if no saved state was restored
 		if (!files[activeFileIndex]?.model) {
-			const model = monaco.editor.createModel(
-				files[activeFileIndex].content,
-				'python'
-			);
-			files[activeFileIndex].model = model;
-			editor.setModel(files[activeFileIndex].model || null);
+			// If active file is not Home and is a code or context file
+			if (files[activeFileIndex].type !== 'home' && 
+				(files[activeFileIndex].type === 'code' || files[activeFileIndex].type === 'context')) {
+				const model = monaco.editor.createModel(
+					files[activeFileIndex].content,
+					files[activeFileIndex].type === 'context' ? 'markdown' : 'python'
+				);
+				files[activeFileIndex].model = model;
+				editor.setModel(files[activeFileIndex].model || null);
+			} else if (files[activeFileIndex].type === 'home') {
+				// If active file is Home, clear the editor model
+				editor.setModel(null);
+			}
 		}
 
 		consoleEditor = monaco.editor.create(consoleContainer, {
@@ -1000,6 +1103,81 @@ print(df)`;
 						bind:this={editorContainer}
 					/>
 					
+					<!-- Home view -->
+					{#if files[activeFileIndex].type === 'home'}
+						<div class="home-container p-8 h-full overflow-auto bg-[#1a1a1a] text-gray-300 font-mono">
+							<h1 class="text-2xl font-bold mb-6 text-white">What is Mako?</h1>
+							
+							<p class="mb-4">
+								Mako is a modern web-based analytics platform that combines the power of an interactive code editor with robust data management capabilities. It provides data scientists, analysts, and developers with a seamless environment for writing, executing, and analyzing python code alongside powerful data visualization features.
+							</p>
+							
+							<p class="mb-6">
+								Mako is an analytics IDE with an opinion. Out of the box, it allows for a small set of python modules to be imported and used.
+							</p>
+							
+							<ul class="list-disc pl-6 mb-8 space-y-1">
+								<li>All built in python functions</li>
+								<li>Polars for data processing</li>
+								<li>Bokeh for plotting</li>
+								<li>Pyarrow for data transfer</li>
+							</ul>
+							
+							<h2 class="text-xl font-bold mb-4 text-white">Getting Started</h2>
+							
+							<p class="mb-4">
+								First things first. You can try importing local data using the shortcut <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + I</span>
+							</p>
+							
+							<h2 class="text-xl font-bold mt-8 mb-4 text-white">Interface Overview</h2>
+							
+							<p class="mb-2">Mako has a few sections:</p>
+							<ul class="list-disc pl-6 mb-8 space-y-1">
+								<li>Left Side menu shows the functions you create and also all shortcuts.</li>
+								<li>The right side menu (open using <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + D</span>) opens the data management folder.</li>
+								<li>You can view your local datasets here and delete, analyze or add context.</li>
+							</ul>
+							
+							<h2 class="text-xl font-bold mt-8 mb-4 text-white">Keyboard Shortcuts</h2>
+							
+							<div class="grid grid-cols-2 gap-4 mb-8">
+								<div>
+									<h3 class="text-lg font-bold mb-2 text-white">Code Execution</h3>
+									<ul class="space-y-2">
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Enter</span> - Run current file</li>
+									</ul>
+								</div>
+								
+								<div>
+									<h3 class="text-lg font-bold mb-2 text-white">Tab Management</h3>
+									<ul class="space-y-2">
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + P</span> - New Polars file</li>
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + L</span> - New SQL file</li>
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + B</span> - New Bokeh file</li>
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + R</span> - Restore last closed tab</li>
+									</ul>
+								</div>
+								
+								<div>
+									<h3 class="text-lg font-bold mb-2 text-white">Navigation</h3>
+									<ul class="space-y-2">
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + D</span> - Toggle Data Management sidebar</li>
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + H</span> - Open Home tab</li>
+									</ul>
+								</div>
+								
+								<div>
+									<h3 class="text-lg font-bold mb-2 text-white">Data Management</h3>
+									<ul class="space-y-2">
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + I</span> - Open Data Import</li>
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + F</span> - Save new function</li>
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + S</span> - Save context file</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					{/if}
+					
 					<!-- Dataset view only renders when needed -->
 					{#if files[activeFileIndex].type === 'dataset' && files[activeFileIndex].datasetPath}
 						<EnhancedDatasetView 
@@ -1144,5 +1322,44 @@ print(df)`;
 	.overflow-x-auto::-webkit-scrollbar-thumb {
 		background-color: var(--bg-hover);
 		border-radius: 4px;
+	}
+	
+	/* Home tab styles */
+	.home-container {
+		font-family: 'Courier New', monospace;
+		line-height: 1.6;
+		font-size: 0.9rem;
+	}
+	
+	.home-container h1 {
+		font-family: 'Courier New', monospace;
+		font-weight: bold;
+		font-size: 1.5rem;
+	}
+	
+	.home-container h2 {
+		font-family: 'Courier New', monospace;
+		font-weight: bold;
+		font-size: 1.2rem;
+	}
+	
+	.home-container h3 {
+		font-family: 'Courier New', monospace;
+		font-weight: bold;
+		font-size: 1rem;
+	}
+	
+	.home-container ul {
+		margin-left: 1.5rem;
+	}
+	
+	.home-container p {
+		margin-bottom: 1rem;
+	}
+	
+	.home-container .bg-\[\#333\] {
+		display: inline-block;
+		margin: 0 0.25rem;
+		font-size: 0.8rem;
 	}
 </style>
