@@ -50,7 +50,14 @@ Prerequisites:
 
 Launch development environment:
 ```bash
-./mako run
+# Set up the entire project
+make setup
+
+# Run both frontend and backend in development mode
+make dev
+
+# Clean up all generated files
+make clean
 ```
 
 This script will:
