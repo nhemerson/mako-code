@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
+    import { getApiUrl, fetchApi } from "$lib/utils/api";
     
     export let show = false;
     export let onClose: () => void;
@@ -79,7 +80,7 @@
             // Get the latest code from the editor if available
             const currentCode = editorInitialized && editor ? editor.getValue() : code;
             
-            const response = await fetch('http://localhost:8000/api/save-function', {
+            const response = await fetchApi('api/save-function', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

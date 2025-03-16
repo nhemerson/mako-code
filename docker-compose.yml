@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend/data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+      - ENVIRONMENT=development
+      - ALLOWED_ORIGINS=http://localhost:5173,http://frontend:5173,http://localhost:8001
+    restart: unless-stopped
+    networks:
+      - mako-network
+
+  frontend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://backend:8000
+    restart: unless-stopped
+    networks:
+      - mako-network
+
+volumes:
+  mako_data:
+    driver: local
+
+networks:
+  mako-network:
+    driver: bridge 

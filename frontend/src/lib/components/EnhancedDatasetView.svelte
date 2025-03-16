@@ -1,6 +1,7 @@
 <script lang="ts">
     import DataframeView from './DataframeView.svelte';
     import { onMount } from 'svelte';
+    import { getApiUrl, fetchApi } from "$lib/utils/api";
 
     export let datasetPath: string;
     export let datasetName: string;
@@ -24,7 +25,7 @@
             const datasetNameWithoutExt = datasetName.replace('.parquet', '');
             
             // Use the get-dataset-context endpoint
-            const response = await fetch(`http://localhost:8000/api/get-dataset-context/${datasetNameWithoutExt}`);
+            const response = await fetchApi(`api/get-dataset-context/${datasetNameWithoutExt}`);
             const data = await response.json();
             
             if (!response.ok) {
@@ -44,7 +45,7 @@
 
     async function loadSchema() {
         try {
-            const response = await fetch(`http://localhost:8000/api/get-dataset-schema/${datasetName}`);
+            const response = await fetchApi(`api/get-dataset-schema/${datasetName}`);
             const data = await response.json();
             if (data.success) {
                 schema = data.schema;
