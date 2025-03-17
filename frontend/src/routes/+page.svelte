@@ -1142,7 +1142,7 @@ print(df)`;
 							<p class="mb-2">Mako has a few sections:</p>
 							<ul class="list-disc pl-6 mb-8 space-y-1">
 								<li>Left Side menu shows the functions you create and also all shortcuts.</li>
-								<li>The right side menu (open using <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + D</span>) opens the data management folder.</li>
+								<li>The right side menu (open using <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + D</span>) opens the data management folder.</li>
 								<li>You can view your local datasets here and delete, analyze or add context.</li>
 							</ul>
 							
