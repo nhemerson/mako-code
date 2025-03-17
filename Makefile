@@ -44,10 +44,10 @@ frontend:
 backend:
 ifdef UV_CHECK
 	@echo "Starting backend server with UV environment..."
-	cd backend && . .venv/bin/activate && uvicorn main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && . .venv/bin/activate && uvicorn main:app --reload --host 0.0.0.0 --port 8001 || echo "Failed to start backend server with UV."
 else
 	@echo "Starting backend server with pip environment..."
-	cd backend && . venv/bin/activate && uvicorn main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && . venv/bin/activate && uvicorn main:app --reload --host 0.0.0.0 --port 8001 || echo "Failed to start backend server with pip."
 endif
 
 # Build frontend for production
