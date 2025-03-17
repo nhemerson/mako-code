@@ -8,6 +8,10 @@
 	import { codeTemplates } from '$lib/templates/codeTemplates';
 	import RightSidebar from '$lib/components/RightSidebar.svelte';
 	import SaveFunctionModal from '$lib/components/SaveFunctionModal.svelte';
+	import { getApiUrl, fetchApi } from "$lib/utils/api";
+	import { browser } from '$app/environment';
+	import { page } from '$app/stores';
+	import { writable } from 'svelte/store';
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
 	let consoleEditor: Monaco.editor.IStandaloneCodeEditor;
@@ -308,7 +312,10 @@
 		output = ''; // Reset output at start
 
 		try {
-			const response = await fetch('http://localhost:8000/execute', {
+			console.log('Executing code:', code.substring(0, 100) + '...');
+			
+			// Use the API utility to get the correct URL
+			const response = await fetchApi('execute', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -316,7 +323,10 @@
 				body: JSON.stringify({ code })
 			});
 
+			console.log('Response status:', response.status);
+			
 			const result = await response.json();
+			console.log('Response result:', result);
 			
 			if (result.success) {
 				// Handle standard output
@@ -353,6 +363,7 @@
 			consoleEditor.setValue(output);
 			consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
 		} catch (error: any) {
+			console.error('Code execution error:', error);
 			const errorMessage = '\x1b[31m🔴 Error: Failed to execute code. Make sure the backend server is running.\n' + error.message + '\x1b[0m';
 			consoleEditor.setValue(errorMessage);
 			consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
@@ -385,7 +396,7 @@
 
 	async function loadDatasets() {
 		try {
-			const response = await fetch('http://localhost:8000/api/list-datasets');
+			const response = await fetchApi('api/list-datasets');
 			const data = await response.json();
 			datasets = data.datasets;
 		} catch (error) {
@@ -395,7 +406,7 @@
 
 	async function deleteDataset(path: string) {
 		try {
-			const response = await fetch('http://localhost:8000/api/delete-dataset', {
+			const response = await fetchApi('api/delete-dataset', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -477,7 +488,7 @@ print(df)`;
 
 		// Fetch existing context if any
 		try {
-			const response = await fetch(`http://localhost:8000/api/get-dataset-context/${dataset.name}`);
+			const response = await fetchApi(`api/get-dataset-context/${dataset.name}`);
 			const data = await response.json();
 			
 			const initialContent = data.exists ? data.content : `# ${dataset.name} Dataset Context\n\nAdd your dataset documentation here...\n`;
@@ -524,7 +535,7 @@ print(df)`;
 		const datasetName = currentFile.datasetName;
 
 		try {
-			const response = await fetch('http://localhost:8000/api/save-dataset-context', {
+			const response = await fetchApi('api/save-dataset-context', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -883,15 +894,13 @@ print(df)`;
 		
 		consoleEditor.setValue('// Console output will appear here');
 		
-		// Removed automatic hover-based linting to prevent unwanted messages
-		/*
 		monaco.languages.registerHoverProvider('python', {
 			async provideHover(model: monaco.editor.ITextModel, position: monaco.Position, token: monaco.CancellationToken): Promise<monaco.languages.Hover | null> {
 				if (selectedLanguage !== 'python') return null;
 
 				try {
 					const code = model.getValue();
-					const response = await fetch('http://localhost:8000/lint', {
+					const response = await fetchApi('lint', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ 
@@ -933,7 +942,6 @@ print(df)`;
 				}
 			}
 		});
-		*/
 
 		loadDatasets();
 		
@@ -1134,7 +1142,7 @@ print(df)`;
 							<p class="mb-2">Mako has a few sections:</p>
 							<ul class="list-disc pl-6 mb-8 space-y-1">
 								<li>Left Side menu shows the functions you create and also all shortcuts.</li>
-								<li>The right side menu (open using <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + D</span>) opens the data management folder.</li>
+								<li>The right side menu (open using <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + D</span>) opens the data management folder.</li>
 								<li>You can view your local datasets here and delete, analyze or add context.</li>
 							</ul>
 							

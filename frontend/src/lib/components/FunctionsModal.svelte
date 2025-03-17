@@ -1,6 +1,7 @@
 <script lang="ts">
     import { X } from 'lucide-svelte';
     import { fade } from 'svelte/transition';
+    import { getApiUrl, fetchApi } from "$lib/utils/api";
 
     export let show = false;
     export let onClose: () => void;
@@ -23,7 +24,7 @@
         loading = true;
         error = null;
         try {
-            const response = await fetch('http://localhost:8000/api/list-functions');
+            const response = await fetchApi('api/list-functions');
             const data = await response.json();
             if (data.success) {
                 functions = data.functions;

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test (Local)</title>
+    <script>
+        // Log to console
+        console.log('Test script loaded');
+
+        // Test direct connection to backend
+        async function testBackendConnection() {
+            try {
+                console.log('Testing connection to backend...');
+                const response = await fetch('http://localhost:8001/api/docs');
+                const text = await response.text();
+                document.getElementById('backend-result').textContent = 'Success! Backend is accessible.';
+                console.log('Backend connection successful!');
+            } catch (error) {
+                document.getElementById('backend-result').textContent = 'Error: ' + error.message;
+                console.error('Backend connection error:', error);
+            }
+        }
+
+        // Test code execution
+        async function testCodeExecution() {
+            try {
+                console.log('Testing code execution...');
+                const response = await fetch('http://localhost:8001/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: 'print("Hello from test page!")'
+                    })
+                });
+                const result = await response.json();
+                document.getElementById('execute-result').textContent = 'Success! Result: ' + JSON.stringify(result);
+                console.log('Code execution result:', result);
+            } catch (error) {
+                document.getElementById('execute-result').textContent = 'Error: ' + error.message;
+                console.error('Code execution error:', error);
+            }
+        }
+
+        // Run tests when page loads
+        window.onload = function() {
+            console.log('Page loaded, running tests...');
+            testBackendConnection();
+            testCodeExecution();
+        };
+    </script>
+</head>
+<body>
+    <h1>API Connection Test (Local)</h1>
+    <h2>Backend Connection Test</h2>
+    <div id="backend-result">Testing...</div>
+    <h2>Code Execution Test</h2>
+    <div id="execute-result">Testing...</div>
+</body>
+</html> 

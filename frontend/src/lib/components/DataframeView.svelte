@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { getApiUrl, fetchApi } from "$lib/utils/api";
     export let datasetPath: string | null;
     let data: any[] = [];
     let columns: string[] = [];
@@ -33,7 +34,7 @@
             error = null;
             console.log(`Loading dataset from path: ${datasetPath}`);
             
-            const response = await fetch(`http://localhost:8000/api/dataset?path=${encodeURIComponent(datasetPath)}`);
+            const response = await fetchApi(`api/dataset?path=${encodeURIComponent(datasetPath)}`);
             const responseText = await response.text();
             
             if (!response.ok) {

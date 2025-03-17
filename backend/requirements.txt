@@ -2,13 +2,13 @@
 fastapi==0.109.0
 uvicorn==0.27.0
 pydantic==2.6.1
-python-multipart==0.0.6
-RestrictedPython==6.2
+python-multipart>=0.0.18
+RestrictedPython>=8.0
 polars==1.22.0
 pyarrow==19.0.1
 python-dotenv==1.0.0
 google-cloud-storage==3.0.0
 google-cloud-bigquery-storage==2.26.0
-urllib3==1.26.18
+urllib3>=1.26.19
 bokeh==3.6.3
 ruff==0.1.14  # Required for Mako editor linting

@@ -5,7 +5,7 @@ from io import StringIO
 import contextlib
 import ast
 import polars as pl
-from functions.ingestion import DATASET_DIR
+from functions.ingestion import DATASET_DIR, DATA_DIR, ensure_dataset_dir
 import ruff
 import tempfile
 from typing import List, Dict, Optional, Union
@@ -28,7 +28,7 @@ app = FastAPI(
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # SvelteKit dev server
+    allow_origins=["http://localhost:5173", "http://frontend:5173", "http://localhost:8001", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -333,16 +333,19 @@ async def upload_file(
     newFileName: str = Form(...)
 ):
     try:
-        # Use relative paths from current directory (backend)
-        data_root = Path("./data")
+        # Import the DATA_DIR constant from the ingestion module
+        from functions.ingestion import DATA_DIR, ensure_dataset_dir
+        
+        # Use Path objects for consistent path handling
+        data_root = Path(DATA_DIR)
         local_storage_path = data_root / "local_storage"
         cloud_storage_path = data_root / "cloud_storage"
         
         # Create directories if they don't exist
-        for path in [data_root, local_storage_path, cloud_storage_path]:
-            if not path.exists():
-                print(f"Creating directory: {path}")
-                path.mkdir(parents=True, exist_ok=True)
+        ensure_dataset_dir()  # This handles the local_storage dir
+        if not cloud_storage_path.exists():
+            print(f"Creating directory: {cloud_storage_path}")
+            cloud_storage_path.mkdir(parents=True, exist_ok=True)
         
         # Check if file already exists
         output_path = local_storage_path / f"{newFileName}.parquet"
@@ -486,7 +489,8 @@ async def check_file_exists(filename: str = Query(...)):
     Check if a file exists in the local storage
     """
     try:
-        file_path = Path("data/local_storage") / filename
+        from functions.ingestion import DATASET_DIR
+        file_path = DATASET_DIR / filename
         return {
             "exists": file_path.exists()
         }
@@ -537,13 +541,14 @@ async def get_dataset(path: str):
 @app.get("/api/check-file")
 async def check_file(filename: str):
     try:
+        from functions.ingestion import DATA_DIR
         # Check multiple possible locations
         possible_paths = [
-            os.path.join("data", filename),
-            os.path.join("data", "local_storage", filename)
+            Path(DATA_DIR) / filename,
+            Path(DATA_DIR) / "local_storage" / filename
         ]
         
-        exists = any(os.path.exists(path) for path in possible_paths)
+        exists = any(path.exists() for path in possible_paths)
         return {"exists": exists}
     except Exception as e:
         print(f"Error checking file: {str(e)}")

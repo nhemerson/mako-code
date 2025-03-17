@@ -1,5 +1,6 @@
 <script lang="ts">
     import { fade } from 'svelte/transition';
+    import { getApiUrl, fetchApi } from "$lib/utils/api";
     export let show = false;
     export let onClose: () => void;
 
@@ -75,7 +76,7 @@
 
     const checkFileExists = async (fileName: string): Promise<boolean> => {
         try {
-            const response = await fetch(`http://localhost:8000/api/check-file?filename=${fileName}.parquet`);
+            const response = await fetchApi(`api/check-file?filename=${fileName}.parquet`);
             const data = await response.json();
             return data.exists;
         } catch (error) {
@@ -106,7 +107,7 @@
         formData.append('newFileName', newFileName);
 
         try {
-            const response = await fetch('http://localhost:8000/api/upload', {
+            const response = await fetchApi('api/upload', {
                 method: 'POST',
                 body: formData,
             });

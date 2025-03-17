@@ -5,14 +5,20 @@ import io
 from pathlib import Path
 from fastapi import UploadFile
 from typing import Union
+from dotenv import load_dotenv
 
-# Get the absolute path to the backend directory
-BACKEND_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DATASET_DIR = BACKEND_DIR / "data" / "local_storage"
+# Load environment variables
+load_dotenv()
+
+# Use environment variable for data directory, with a default fallback path
+DATA_DIR = os.getenv("DATA_DIR", str(Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) / "data"))
+DATASET_DIR = Path(DATA_DIR) / "local_storage"
 
 def ensure_dataset_dir():
     """Ensure the datasets directory exists"""
     try:
+        # Create both the main data dir and the local_storage subdirectory
+        Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
         DATASET_DIR.mkdir(parents=True, exist_ok=True)
         print(f"Dataset directory ensured at: {DATASET_DIR}")
     except Exception as e:
