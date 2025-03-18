@@ -49,6 +49,19 @@ Prerequisites:
 - uv package manager (for Python dependencies)
 
 Launch development environment:
+
+There are a couple ways to start Mako at the moment:
+
+1. Use docker compose
+```bash
+# build the image
+docker-compose build
+
+# run the application
+docker-compose up
+```
+
+2, Use the Makefile
 ```bash
 # Set up the entire project
 make setup
