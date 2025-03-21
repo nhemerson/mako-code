@@ -895,8 +895,9 @@ print(df)`;
 		consoleEditor.setValue('// Console output will appear here');
 		
 		monaco.languages.registerHoverProvider('python', {
-			async provideHover(model: monaco.editor.ITextModel, position: monaco.Position, token: monaco.CancellationToken): Promise<monaco.languages.Hover | null> {
-				if (selectedLanguage !== 'python') return null;
+			async provideHover(model: Monaco.editor.ITextModel, position: Monaco.Position, token: Monaco.CancellationToken): Promise<Monaco.languages.Hover | null> {
+				// Check if this is actually Python code
+				if (model.getLanguageId() !== 'python') return null;
 
 				try {
 					const code = model.getValue();
@@ -912,33 +913,27 @@ print(df)`;
 
 					const lintResults = await response.json();
 					
-					// Format and display lint results in console
-					let consoleOutput = '';
 					if (lintResults.length === 0) {
-						consoleOutput = '✅ No linting errors found';
-					} else {
-						consoleOutput = '🔍 Ruff found the following issues:\n\n';
-						lintResults.forEach((error: any) => {
-							consoleOutput += `Line ${error.line}, Column ${error.column}: ${error.message} (${error.code})\n`;
-						});
+						return null;
 					}
-					consoleEditor.setValue(consoleOutput);
+					
+					// Format the hover message
+					const contents = lintResults.map((error: any) => ({
+						value: `${error.message} (${error.code})`
+					}));
 
 					return {
-						diagnostics: lintResults.map((error: any) => ({
-							severity: monaco.MarkerSeverity.Error,
-							startLineNumber: error.line,
-							startColumn: error.column,
-							endLineNumber: error.line,
-							endColumn: error.column + 1,
-							message: error.message,
-							code: error.code
-						}))
+						contents,
+						range: {
+							startLineNumber: position.lineNumber,
+							startColumn: position.column,
+							endLineNumber: position.lineNumber,
+							endColumn: position.column + 1
+						}
 					};
 				} catch (error) {
 					console.error('Linting failed:', error);
-					consoleEditor.setValue('🔴 Error: Failed to run Ruff linter. Make sure the backend server is running.');
-					return { diagnostics: [] };
+					return null;
 				}
 			}
 		});

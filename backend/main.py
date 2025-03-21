@@ -6,7 +6,6 @@ import contextlib
 import ast
 import polars as pl
 from functions.ingestion import DATASET_DIR, DATA_DIR, ensure_dataset_dir
-import ruff
 import tempfile
 from typing import List, Dict, Optional, Union
 from pathlib import Path
@@ -458,22 +457,28 @@ async def lint_code(request: LintRequest):
             temp_file.write(request.code)
             temp_file.flush()
             
-            # Run Ruff linter
-            linter = ruff.Linter()
-            results = linter.lint(Path(temp_file.name))
+            # Run Ruff using subprocess instead of the Python API
+            result = subprocess.run(
+                ["ruff", "check", "--format", "json", temp_file.name],
+                capture_output=True,
+                text=True
+            )
             
-            # Format the results
-            diagnostics = []
-            for result in results:
-                diagnostic = {
-                    "line": result.location.row,
-                    "column": result.location.column,
-                    "message": f"{result.violation_message or result.message} ({result.code})",
-                    "code": result.code
-                }
-                diagnostics.append(diagnostic)
-            
-            return diagnostics
+            # Parse JSON output
+            if result.stdout:
+                import json
+                findings = json.loads(result.stdout)
+                diagnostics = []
+                for finding in findings:
+                    diagnostic = {
+                        "line": finding.get("location", {}).get("row", 1),
+                        "column": finding.get("location", {}).get("column", 1),
+                        "message": f"{finding.get('message', '')} ({finding.get('code', 'E999')})",
+                        "code": finding.get("code", "E999")
+                    }
+                    diagnostics.append(diagnostic)
+                return diagnostics
+            return []
 
     except Exception as e:
         return [{
