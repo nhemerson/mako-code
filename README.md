@@ -50,7 +50,7 @@ Prerequisites:
 
 Launch development environment:
 
-There are a couple ways to start Mako at the moment:
+To launch Mako have Docker Desktop installed then use Docker Composer
 
 1. Use docker compose
 ```bash
@@ -60,24 +60,6 @@ docker-compose build
 # run the application
 docker-compose up
 ```
-
-2, Use the Makefile
-```bash
-# Set up the entire project
-make setup
-
-# Run both frontend and backend in development mode
-make dev
-
-# Clean up all generated files
-make clean
-```
-
-This script will:
-- Check for required Python and Node.js versions
-- Install dependencies using uv
-- Start both frontend and backend servers
-- Automatically open your browser
 
 ## Contributing
 
