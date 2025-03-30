@@ -56,18 +56,22 @@
 	function handleImportClick() {
 		dispatch('importClick');
 	}
+
+	function toggleSidebar() {
+		isSidebarCollapsed = !isSidebarCollapsed;
+	}
 </script>
 
 <div class="{isSidebarCollapsed ? 'w-[50px]' : 'w-[20%]'} border-l border-[#333333] flex flex-col bg-[#181818] p-4 relative transition-all duration-150 ease-in-out">
 	
 	<button
 		class="absolute top-4 {isSidebarCollapsed ? 'left-1/2 -translate-x-1/2' : 'right-4'} text-gray-400 hover:text-white transition-colors"
-		on:click={() => isSidebarCollapsed = !isSidebarCollapsed}
+		on:click={toggleSidebar}
 		aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}	
 	>
 		<svg 
 			xmlns="http://www.w3.org/2000/svg" 
-			class="h-5 w-5 transform transition-transform duration-300 {isSidebarCollapsed ? 'rotate-180' : ''}" 
+			class="h-5 w-5 transform transition-transform duration-300 {!isSidebarCollapsed ? 'rotate-180' : ''}" 
 			viewBox="0 0 24 24" 
 			fill="none" 
 			stroke="currentColor" 
