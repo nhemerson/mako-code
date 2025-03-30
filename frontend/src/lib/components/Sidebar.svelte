@@ -99,7 +99,7 @@
                 >
                     <BookOpen size={24} class="shrink-0" />
                     <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75 text-sm" class:opacity-0={isCollapsed}>
-                        Docs
+                        Polars Docs
                     </span>
                 </button>
             </li>

@@ -1210,12 +1210,12 @@ print(df)`;
 		</div>
 		
 		<RightSidebar 
-			isSidebarCollapsed={isSidebarCollapsed}
-			datasets={datasets}
-			addDatasetTab={addDatasetTab}
-			deleteDataset={deleteDataset}
-			addDatasetContext={addDatasetContext}
-			analyzeDataset={analyzeDataset}
+			bind:isSidebarCollapsed
+			{datasets}
+			{addDatasetTab}
+			{deleteDataset}
+			{addDatasetContext}
+			{analyzeDataset}
 			on:importClick={() => showDataImportModal = true}
 		/>
 	</div>
