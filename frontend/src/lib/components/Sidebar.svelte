@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
-    import { Menu, ChevronLeft, Code, Settings } from 'lucide-svelte';
+    import { Menu, ChevronLeft, Code, Settings, BookOpen } from 'lucide-svelte';
     import { hasUnsavedChanges } from '$lib/stores/navigation';
     import ConfirmNavigationModal from './ConfirmNavigationModal.svelte';
     import SettingsModal from './SettingsModal.svelte';
@@ -33,6 +33,10 @@
     function cancelNavigation() {
         showConfirmModal = false;
         pendingNavigation = null;
+    }
+
+    function openDocs() {
+        window.open('https://docs.pola.rs/api/python/stable/reference/', '_blank');
     }
 </script>
 
@@ -85,6 +89,17 @@
                     <Code size={24} class="shrink-0" />
                     <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75 text-sm" class:opacity-0={isCollapsed}>
                         Functions
+                    </span>
+                </button>
+            </li>
+            <li>
+                <button 
+                    on:click={openDocs}
+                    class="w-full flex items-center gap-4 rounded-lg hover:bg-[#222222] transition-colors {isCollapsed ? 'px-2' : 'px-4'} py-3"
+                >
+                    <BookOpen size={24} class="shrink-0" />
+                    <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75 text-sm" class:opacity-0={isCollapsed}>
+                        Docs
                     </span>
                 </button>
             </li>

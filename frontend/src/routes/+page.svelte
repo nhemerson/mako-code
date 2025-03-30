@@ -1039,7 +1039,7 @@ print(df)`;
 </script>
 
 <svelte:head>
-	<title>Mako</title>
+	<title>Mako Code</title>
 </svelte:head>
 
 <div class="flex-1 flex flex-col overflow-hidden">
