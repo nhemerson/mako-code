@@ -5,15 +5,23 @@ Analytics Tools for Small Data
 
 ## What is Mako?
 
-Mako is a modern web-based analytics platform that combines the power of an interactive code editor with robust data management capabilities. It provides data scientists, analysts, and developers with a seamless environment for writing, executing, and analyzing python code alongside powerful data visualization features. 
+Mako Code is an open source Independent Analytics Environment (IAE) that is built for data people who love to code. It is a workflow designed for fast ad hoc analysis with features to let you productize your work. So you can get to answers quickly while building a foundation for future data products.
 
-Mako is an analytics IDE with an opinion. Out of the box, it allows for a small set of python modules to be imported and used. 
-- All built in python functions
-- Polars for data processing
-- Bokeh for plotting
-- Pyarrow for data transfer
+Mako Code is not a vibe coding tool, and doesn't come with an LLM. But it does come with an opinion.
 
-However, it is easy to add more modules as needed. The goals is to provide a concise workspace that is light in dependencies and easy to install.
+- The Monaco Code Editor
+- Python built in functions
+- Polars only for dataframe manipulation
+- Direct link to Polars docs and AI chat
+- Bokeh for data viz
+- Parquets as the local file type
+- Apache Arrow for data serialization
+- Pydantic data models
+- Ruff for linting
+- Fast API backend
+- Svelte JS front end
+
+However, it is easy to customize as needed. The goals is to provide a concise workspace that is light in dependencies and easy to install.
 
 ## Key Features
 
@@ -26,6 +34,12 @@ However, it is easy to add more modules as needed. The goals is to provide a con
 - ⌨️ Comprehensive keyboard shortcuts for productivity
 - 📝 SQL query support with dataset integration
 - 📊 Interactive Bokeh plotting functionality
+
+## Code Editor
+<img width="2560" alt="Screenshot 2025-03-31 at 10 24 02 am" src="https://github.com/user-attachments/assets/8dd5ce35-309b-4125-b7c6-12c4a2c1cbe1" />
+
+## Dataset Preview
+<img width="2560" alt="Screenshot 2025-03-31 at 2 32 44 pm" src="https://github.com/user-attachments/assets/54a985ba-be29-41a1-b197-2c2c45fba1f8" />
 
 ## Tech Stack
 
