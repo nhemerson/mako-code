@@ -3,7 +3,7 @@
 
 Analytics Tools for Small Data
 
-## What is Mako?
+## What is Mako Code?
 
 Mako Code is an open source Independent Analytics Environment (IAE) that is built for data people who love to code. It is a workflow designed for fast ad hoc analysis with features to let you productize your work. So you can get to answers quickly while building a foundation for future data products.
 
