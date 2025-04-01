@@ -4,6 +4,7 @@ import re
 import ast
 from typing import List, Dict, Any
 from functions.mako import save
+from functions.ingestion import DATASET_DIR
 from functions.sql_parser import parse_sql_code, validate_datasets
 
 def execute_sql(code: str) -> pl.DataFrame:
