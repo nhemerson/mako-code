@@ -244,7 +244,7 @@ async def execute_code(request: CodeRequest):
     if request.code.strip().startswith('@sql'):
         try:
             # Execute SQL using mako function
-            result = mako.execute_sql(request.code)
+            result = utils.execute_sql(request.code)
             return {
                 "success": True,
                 "output": str(result),
