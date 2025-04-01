@@ -8,10 +8,7 @@
 	import { codeTemplates } from '$lib/templates/codeTemplates';
 	import RightSidebar from '$lib/components/RightSidebar.svelte';
 	import SaveFunctionModal from '$lib/components/SaveFunctionModal.svelte';
-	import { getApiUrl, fetchApi } from "$lib/utils/api";
-	import { browser } from '$app/environment';
-	import { page } from '$app/stores';
-	import { writable } from 'svelte/store';
+	import { fetchApi } from "$lib/utils/api";
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
 	let consoleEditor: Monaco.editor.IStandaloneCodeEditor;
@@ -30,13 +27,6 @@
 	let isSidebarCollapsed = true;  // New state for sidebar collapse
 	let draggedTabIndex: number | null = null;
 	let showSaveFunctionModal = false;
-
-	const languages = [
-		{ id: 'python' as const, name: 'Python' },
-		{ id: 'sql' as const, name: 'SQL' },
-		{ id: 'rust' as const, name: 'Rust' },
-		{ id: 'javascript' as const, name: 'JavaScript' }
-	];
 
 	interface EditorFile {
 		name: string;
@@ -1018,7 +1008,8 @@ print(df)`;
 		
 		if (event.key === 'Enter') {
 			const newName = input.value.trim();
-			if (newName && newName !== files[index].name) {
+			// Only allow renaming if it's not a dataset tab
+			if (newName && newName !== files[index].name && files[index].type !== 'dataset') {
 				files[index].name = newName;
 				files = [...files];
 			}
