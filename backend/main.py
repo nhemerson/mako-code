@@ -1,20 +1,20 @@
-from fastapi import FastAPI, HTTPException, UploadFile, Form, Query, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, field_validator
-from io import StringIO
-import contextlib
-import ast
-import polars as pl
-from functions.ingestion import DATASET_DIR, DATA_DIR, ensure_dataset_dir
-import tempfile
-from typing import List, Dict, Optional, Union
-from pathlib import Path
-import subprocess
-import os
-from dotenv import load_dotenv
-from functions import mako
-from functions.mako import save_function
-from datetime import datetime
+from fastapi import FastAPI, HTTPException, UploadFile, Form, Query, Request, Response  # Needed for FastAPI functionality
+from fastapi.middleware.cors import CORSMiddleware  # Needed for CORS middleware
+from pydantic import BaseModel, Field, field_validator  # Needed for request validation
+from io import StringIO  # Needed for handling in-memory file operations
+import contextlib  # Needed for context management
+import ast  # Needed for abstract syntax tree operations
+import polars as pl  # Needed for data manipulation
+from functions.ingestion import ensure_dataset_dir  # Needed to ensure dataset directory exists
+import tempfile  # Needed for temporary file operations
+from typing import List, Dict, Optional, Union  # Needed for type annotations
+from pathlib import Path  # Needed for file path operations
+import subprocess  # Needed for running subprocesses
+import os  # Needed for operating system interactions
+import functions.utils as utils
+from dotenv import load_dotenv  # Needed for loading environment variables
+from functions.utils import save_function  # Needed for saving functions
+from datetime import datetime  # Needed for date and time operations
 
 app = FastAPI(
     title="Mako API",
@@ -807,7 +807,7 @@ async def save_user_function(data: SaveFunctionRequest):
 @app.get("/api/list-functions", response_model=ListFunctionsResponse)
 async def list_functions():
     try:
-        functions_data = mako.list_saved_functions()
+        functions_data = utils.list_saved_functions()
         # Convert the raw function data to UserFunction instances
         functions = [
             UserFunction(
