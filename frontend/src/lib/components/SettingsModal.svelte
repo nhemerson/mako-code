@@ -37,7 +37,8 @@
             category: "Save Functions",
             items: [
                 { keys: ["⌘/Ctrl", "S"], description: "Save context file" },
-                { keys: ["⌘/Ctrl", "Shift", "F"], description: "Save new function" }
+                { keys: ["⌘/Ctrl", "Shift", "F"], description: "Save new function" },
+                { keys: ["⌘/Ctrl", "Shift", "E"], description: "Export file" }
             ]
         }
     ];

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
+	import VersionHistory from './VersionHistory.svelte';
 
 	const dispatch = createEventDispatcher();
 
@@ -10,8 +11,10 @@
 	export let deleteDataset: (path: string) => void;
 	export let addDatasetContext: (dataset: { name: string; path: string }) => void;
 	export let analyzeDataset: (dataset: { name: string; path: string }) => void;
+	export let activeFile: { name: string; type: string } = { name: '', type: '' };
 
 	let isExploreExpanded = true;  // State for the explore section
+	let isVersionsExpanded = true;  // State for the versions section
 	let showDropdownForDataset: string | null = null;  // Track which dataset's dropdown is open
 
 	// const dispatch = createEventDispatcher();
@@ -60,6 +63,12 @@
 	function toggleSidebar() {
 		isSidebarCollapsed = !isSidebarCollapsed;
 	}
+
+	// Function to load a version into the editor
+	function handleLoadVersion(event: CustomEvent) {
+		const { code, version } = event.detail;
+		dispatch('loadVersion', { code, version });
+	}
 </script>
 
 <div class="{isSidebarCollapsed ? 'w-[50px]' : 'w-[20%]'} border-l border-[#333333] flex flex-col bg-[#181818] p-4 relative transition-all duration-150 ease-in-out">
@@ -100,6 +109,7 @@
 				Import Data
 			</button>
 
+			<!-- DATASETS SECTION - Moved up -->
 			<h2 
 				class="text-white font-semibold mt-8 mb-4 text-xs uppercase tracking-wider flex items-center justify-between cursor-pointer hover:text-gray-300 transition-colors"
 				on:click={() => isExploreExpanded = !isExploreExpanded}
@@ -187,7 +197,7 @@
 										</button>
 										<button
 											class="w-full px-4 py-2 text-xs text-left text-red-400 hover:bg-[#333333] hover:text-red-300 transition-colors flex items-center gap-2"
-											on:click={() => handleMenuAction(deleteDataset, dataset.path)}
+											on:click={() => handleMenuAction((dataset) => deleteDataset(dataset.path), dataset)}
 										>
 											<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 												<path d="M3 6h18"></path>
@@ -203,6 +213,41 @@
 					{/each}
 				{/if}
 			</div>
+
+			<!-- VERSION HISTORY SECTION - Moved below datasets -->
+			{#if activeFile.type === 'code'}
+				<h2 
+					class="text-white font-semibold mt-8 mb-4 text-xs uppercase tracking-wider flex items-center justify-between cursor-pointer hover:text-gray-300 transition-colors"
+					on:click={() => isVersionsExpanded = !isVersionsExpanded}
+				>
+					<span>Version History</span>
+					<button 
+						class="text-gray-400 hover:text-white transition-colors"
+					>
+						<svg 
+							xmlns="http://www.w3.org/2000/svg" 
+							class="h-4 w-4 transform transition-transform duration-200 {isVersionsExpanded ? 'rotate-0' : '-rotate-90'}" 
+							viewBox="0 0 24 24" 
+							fill="none" 
+							stroke="currentColor" 
+							stroke-width="2" 
+							stroke-linecap="round" 
+							stroke-linejoin="round"
+						>
+							<polyline points="6 9 12 15 18 9"></polyline>
+						</svg>
+					</button>
+				</h2>
+				<div 
+					class="space-y-1 overflow-hidden transition-all duration-200"
+					style="max-height: {isVersionsExpanded ? '50vh' : '0px'}; opacity: {isVersionsExpanded ? '1' : '0'}"
+				>
+					<VersionHistory 
+						tabName={activeFile.name} 
+						on:loadVersion={handleLoadVersion}
+					/>
+				</div>
+			{/if}
 		</div>
 	</div>
 </div> 
