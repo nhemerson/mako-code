@@ -637,6 +637,14 @@ print(df)`;
 			return false;
 		}
 
+		// Command/Ctrl + Shift + E (Export File)
+		if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === 'e' || event.key === 'E')) {
+			event.preventDefault();
+			event.stopPropagation();
+			exportCurrentFile();
+			return false;
+		}
+
 		// Existing Command/Ctrl + Shift + R handler
 		if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'r') {
 			event.preventDefault();
@@ -710,6 +718,58 @@ print(df)`;
 
 		// Save state after adding new file
 		saveEditorState();
+	}
+
+	async function exportCurrentFile() {
+		// Only allow exporting code files
+		if (!editor || files[activeFileIndex]?.type !== 'code') {
+			consoleEditor.setValue('⚠️ Only code files can be exported');
+			return;
+		}
+
+		// Get the current file content and name
+		const content = editor.getValue();
+		let fileName = files[activeFileIndex].name;
+
+		try {
+			// Use the File System Access API if available (modern browsers)
+			if ('showSaveFilePicker' in window) {
+				const opts = {
+					suggestedName: fileName,
+					types: [{
+						description: 'Python Files',
+						accept: { 'text/plain': ['.py'] }
+					}]
+				};
+
+				try {
+					// @ts-ignore - TypeScript may not recognize this API yet
+					const fileHandle = await window.showSaveFilePicker(opts);
+					const writable = await fileHandle.createWritable();
+					await writable.write(content);
+					await writable.close();
+					consoleEditor.setValue(`✅ File exported successfully to ${fileName}`);
+				} catch (err: any) {
+					// User probably cancelled the save dialog
+					if (err.name !== 'AbortError') {
+						throw err;
+					}
+				}
+			} else {
+				// Fallback to traditional download for browsers without File System Access API
+				const blob = new Blob([content], { type: 'text/plain' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = fileName;
+				a.click();
+				URL.revokeObjectURL(url);
+				consoleEditor.setValue(`✅ File exported as ${fileName}`);
+			}
+		} catch (error: any) {
+			console.error('Error exporting file:', error);
+			consoleEditor.setValue(`🔴 Error exporting file: ${error.message}`);
+		}
 	}
 
 	onMount(async () => {
@@ -1165,6 +1225,7 @@ print(df)`;
 									<ul class="space-y-2">
 										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + I</span> - Open Data Import</li>
 										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + F</span> - Save new function</li>
+										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + E</span> - Export current file</li>
 										<li><span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + S</span> - Save context file</li>
 									</ul>
 								</div>
