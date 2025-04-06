@@ -12,3 +12,6 @@ google-cloud-bigquery-storage==2.26.0
 urllib3>=1.26.19
 bokeh==3.6.3
 ruff==0.1.14  # Required for Mako editor linting
+scikit-learn==1.6.1
+matplotlib==3.10.1
+seaborn==0.13.2
