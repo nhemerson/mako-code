@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./backend .
 
 # Create data directories
-RUN mkdir -p data/local_storage data/cloud_storage
+RUN mkdir -p data/local_storage data/cloud_storage data/versions
 
 # Add volume for persistent storage
 VOLUME ["/app/data"]

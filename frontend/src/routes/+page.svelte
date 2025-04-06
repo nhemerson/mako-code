@@ -352,11 +352,48 @@
 
 			consoleEditor.setValue(output);
 			consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
+			
+			// Save version if this is a code tab
+			if (files[activeFileIndex].type === 'code') {
+				try {
+					await saveCodeVersion(code, files[activeFileIndex].name, result.success, output);
+				} catch (versionError) {
+					console.error('Failed to save code version:', versionError);
+					// Don't disrupt the main flow if version saving fails
+				}
+			}
 		} catch (error: any) {
 			console.error('Code execution error:', error);
 			const errorMessage = '\x1b[31m🔴 Error: Failed to execute code. Make sure the backend server is running.\n' + error.message + '\x1b[0m';
 			consoleEditor.setValue(errorMessage);
 			consoleEditor.revealLine(consoleEditor.getModel()?.getLineCount() || 1);
+		}
+	}
+
+	// Function to save a version of code
+	async function saveCodeVersion(code: string, tabName: string, executionSuccess: boolean, output: string) {
+		try {
+			const response = await fetchApi('api/save-version', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					code,
+					tab_name: tabName,
+					execution_success: executionSuccess,
+					output
+				})
+			});
+			
+			const result = await response.json();
+			console.log('Version save result:', result);
+			
+			// Could display a notification here if needed
+			
+		} catch (error) {
+			console.error('Error saving code version:', error);
+			// Silent fail - don't disrupt the user's workflow
 		}
 	}
 
@@ -1070,12 +1107,44 @@ print(df)`;
 			const newName = input.value.trim();
 			// Only allow renaming if it's not a dataset tab
 			if (newName && newName !== files[index].name && files[index].type !== 'dataset') {
+				const oldName = files[index].name;
 				files[index].name = newName;
 				files = [...files];
+				
+				// If this is a code tab, also rename the version folder
+				if (files[index].type === 'code') {
+					renameVersionFolder(oldName, newName).catch(error => {
+						console.error('Failed to rename version folder:', error);
+						// Silent fail - don't disrupt workflow
+					});
+				}
 			}
 			editingFileName = -1;
 		} else if (event.key === 'Escape') {
 			editingFileName = -1;
+		}
+	}
+
+	// Function to rename version folder
+	async function renameVersionFolder(oldName: string, newName: string) {
+		try {
+			const response = await fetchApi('api/rename-version-folder', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					old_name: oldName,
+					new_name: newName
+				})
+			});
+			
+			const result = await response.json();
+			console.log('Version folder rename result:', result);
+			
+		} catch (error) {
+			console.error('Error renaming version folder:', error);
+			// Silent fail - don't disrupt workflow
 		}
 	}
 
@@ -1086,6 +1155,20 @@ print(df)`;
 	function handleDataImportClose() {
 		showDataImportModal = false;
 		loadDatasets(); // Refresh dataset list after import
+	}
+
+	// Add this function after handleRenameBlur()
+	function handleLoadVersion(event: CustomEvent) {
+		const { code, version } = event.detail;
+		
+		// Only handle if a code tab is active
+		if (files[activeFileIndex]?.type === 'code') {
+			// Update the editor with the loaded version
+			editor.setValue(code);
+			
+			// Show a notification in the console
+			consoleEditor.setValue(`✅ Loaded version from ${version.timestamp}`);
+		}
 	}
 </script>
 
@@ -1160,14 +1243,13 @@ print(df)`;
 					<!-- Home view -->
 					{#if files[activeFileIndex].type === 'home'}
 						<div class="home-container p-8 h-full overflow-auto bg-[#1a1a1a] text-gray-300 font-mono">
-							<h1 class="text-2xl font-bold mb-6 text-white">What is Mako?</h1>
+							<h1 class="text-2xl font-bold mb-6 text-white">What is Mako Code?</h1>
 							
 							<p class="mb-4">
-								Mako is a modern web-based analytics platform that combines the power of an interactive code editor with robust data management capabilities. It provides data scientists, analysts, and developers with a seamless environment for writing, executing, and analyzing python code alongside powerful data visualization features.
-							</p>
+								Mako Code is an open source Independent Analytics Environment (IAE) that is built for data people who love to code. It is a workflow designed for fast ad hoc analysis with features to let you productize your work. So you can get to answers quickly while building a foundation for future data products.							</p>
 							
 							<p class="mb-6">
-								Mako is an analytics IDE with an opinion. Out of the box, it allows for a small set of python modules to be imported and used.
+								Mako Code is not a vibe coding tool, and doesn't come with an LLM. But it does come with an opinion.
 							</p>
 							
 							<ul class="list-disc pl-6 mb-8 space-y-1">
@@ -1185,7 +1267,7 @@ print(df)`;
 							
 							<h2 class="text-xl font-bold mt-8 mb-4 text-white">Interface Overview</h2>
 							
-							<p class="mb-2">Mako has a few sections:</p>
+							<p class="mb-2">Mako Code has a few sections:</p>
 							<ul class="list-disc pl-6 mb-8 space-y-1">
 								<li>Left Side menu shows the functions you create and also all shortcuts.</li>
 								<li>The right side menu (open using <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + D</span>) opens the data management folder.</li>
@@ -1268,7 +1350,9 @@ print(df)`;
 			{deleteDataset}
 			{addDatasetContext}
 			{analyzeDataset}
+			activeFile={files[activeFileIndex] ? { name: files[activeFileIndex].name, type: files[activeFileIndex].type } : { name: '', type: '' }}
 			on:importClick={() => showDataImportModal = true}
+			on:loadVersion={handleLoadVersion}
 		/>
 	</div>
 </div>

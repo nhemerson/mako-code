@@ -15,6 +15,7 @@ import functions.utils as utils
 from dotenv import load_dotenv  # Needed for loading environment variables
 from functions.utils import save_function  # Needed for saving functions
 from datetime import datetime  # Needed for date and time operations
+import json  # Needed for JSON operations
 
 app = FastAPI(
     title="Mako API",
@@ -582,7 +583,8 @@ def init_data_directories():
     data_dirs = [
         Path("data"),
         Path("data/local_storage"),
-        Path("data/cloud_storage")
+        Path("data/cloud_storage"),
+        Path("data/versions")  # Add versions directory
     ]
     for dir_path in data_dirs:
         dir_path.mkdir(parents=True, exist_ok=True)
@@ -842,6 +844,253 @@ async def list_functions():
         return ListFunctionsResponse(success=True, functions=functions)
     except Exception as e:
         return ListFunctionsResponse(success=False, error=str(e))
+
+class VersionSaveRequest(BaseModel):
+    """Request model for saving a code version"""
+    code: str = Field(..., description="The code content to save")
+    tab_name: str = Field(..., description="The name of the tab/file")
+    execution_success: bool = Field(..., description="Whether the execution was successful")
+    output: str = Field(default="", description="The execution output")
+    
+class VersionResponse(BaseModel):
+    """Response model for version operations"""
+    success: bool
+    message: str
+    version_path: Optional[str] = None
+    error: Optional[str] = None
+
+@app.post("/api/save-version", response_model=VersionResponse)
+async def save_code_version(request: VersionSaveRequest):
+    """Save a version of code with metadata"""
+    try:
+        # Create timestamp for version
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        
+        # Sanitize tab name for folder name (replace invalid chars)
+        sanitized_name = "".join(c if c.isalnum() or c in "._- " else "_" for c in request.tab_name)
+        sanitized_name = sanitized_name.strip()
+        
+        # Create versions directory structure
+        versions_dir = Path("data/versions")
+        versions_dir.mkdir(parents=True, exist_ok=True)
+        
+        tab_dir = versions_dir / sanitized_name
+        tab_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Check if the code has changed from the previous version
+        versions_metadata_path = tab_dir / "metadata.json"
+        should_save = True
+        
+        if versions_metadata_path.exists():
+            try:
+                with open(versions_metadata_path, "r") as f:
+                    metadata = json.load(f)
+                    versions = metadata.get("versions", [])
+                    
+                    # If there are previous versions, check if code has changed
+                    if versions:
+                        latest_version = versions[-1]
+                        latest_code_path = tab_dir / f"{latest_version['filename']}"
+                        
+                        if latest_code_path.exists():
+                            with open(latest_code_path, "r") as code_file:
+                                latest_code = code_file.read()
+                                
+                                # If code hasn't changed, don't save a new version
+                                if latest_code == request.code:
+                                    should_save = False
+            except Exception as e:
+                print(f"Error reading metadata: {str(e)}")
+                # Continue with saving if there's an error reading metadata
+                pass
+        else:
+            # Initialize metadata file
+            metadata = {
+                "tab_name": request.tab_name,
+                "versions": []
+            }
+        
+        if should_save:
+            # Save the code file
+            version_filename = f"{timestamp}.py"
+            version_path = tab_dir / version_filename
+            
+            with open(version_path, "w") as f:
+                f.write(request.code)
+            
+            # Create or update the metadata
+            version_entry = {
+                "timestamp": timestamp,
+                "filename": version_filename,
+                "execution_success": request.execution_success,
+                "output_preview": request.output[:500] + "..." if len(request.output) > 500 else request.output
+            }
+            
+            if not versions_metadata_path.exists():
+                metadata = {
+                    "tab_name": request.tab_name,
+                    "versions": [version_entry]
+                }
+            else:
+                with open(versions_metadata_path, "r") as f:
+                    metadata = json.load(f)
+                    metadata["versions"].append(version_entry)
+            
+            # Write back the updated metadata
+            with open(versions_metadata_path, "w") as f:
+                json.dump(metadata, f, indent=2)
+            
+            return {
+                "success": True,
+                "message": "Version saved successfully",
+                "version_path": str(version_path)
+            }
+        else:
+            return {
+                "success": True,
+                "message": "No changes detected, version not saved"
+            }
+            
+    except Exception as e:
+        print(f"Error saving version: {str(e)}")
+        return {
+            "success": False,
+            "message": "Failed to save version",
+            "error": str(e)
+        }
+
+@app.post("/api/rename-version-folder")
+async def rename_version_folder(request: dict):
+    """Rename a version folder when a tab is renamed"""
+    try:
+        old_name = request.get("old_name")
+        new_name = request.get("new_name")
+        
+        if not old_name or not new_name:
+            return {
+                "success": False,
+                "message": "Missing old or new name",
+                "error": "Both old_name and new_name are required"
+            }
+        
+        # Sanitize names
+        sanitized_old = "".join(c if c.isalnum() or c in "._- " else "_" for c in old_name).strip()
+        sanitized_new = "".join(c if c.isalnum() or c in "._- " else "_" for c in new_name).strip()
+        
+        versions_dir = Path("data/versions")
+        old_dir = versions_dir / sanitized_old
+        new_dir = versions_dir / sanitized_new
+        
+        # Check if old directory exists
+        if not old_dir.exists():
+            return {
+                "success": False,
+                "message": f"Directory for {old_name} does not exist",
+                "error": f"No version folder found for {old_name}"
+            }
+        
+        # Check if new directory already exists
+        if new_dir.exists():
+            return {
+                "success": False,
+                "message": f"Directory for {new_name} already exists",
+                "error": f"Cannot rename: {new_name} folder already exists"
+            }
+        
+        # Rename directory
+        old_dir.rename(new_dir)
+        
+        # Update metadata file if it exists
+        metadata_path = new_dir / "metadata.json"
+        if metadata_path.exists():
+            with open(metadata_path, "r") as f:
+                metadata = json.load(f)
+                metadata["tab_name"] = new_name
+                
+            with open(metadata_path, "w") as f:
+                json.dump(metadata, f, indent=2)
+        
+        return {
+            "success": True,
+            "message": f"Renamed version folder from {old_name} to {new_name}"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to rename version folder",
+            "error": str(e)
+        }
+
+@app.get("/api/list-versions/{tab_name}")
+async def list_versions(tab_name: str):
+    """List all versions for a specific tab"""
+    try:
+        # Sanitize tab name
+        sanitized_name = "".join(c if c.isalnum() or c in "._- " else "_" for c in tab_name).strip()
+        
+        versions_dir = Path("data/versions")
+        tab_dir = versions_dir / sanitized_name
+        metadata_path = tab_dir / "metadata.json"
+        
+        if not metadata_path.exists():
+            return {
+                "success": False,
+                "message": f"No versions found for {tab_name}",
+                "versions": []
+            }
+        
+        with open(metadata_path, "r") as f:
+            metadata = json.load(f)
+            
+        return {
+            "success": True,
+            "message": f"Found {len(metadata.get('versions', []))} versions for {tab_name}",
+            "versions": metadata.get("versions", [])
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to list versions",
+            "error": str(e),
+            "versions": []
+        }
+
+@app.get("/api/get-version/{tab_name}/{version_filename}")
+async def get_version(tab_name: str, version_filename: str):
+    """Get a specific version of code"""
+    try:
+        # Sanitize tab name
+        sanitized_name = "".join(c if c.isalnum() or c in "._- " else "_" for c in tab_name).strip()
+        
+        versions_dir = Path("data/versions")
+        tab_dir = versions_dir / sanitized_name
+        version_path = tab_dir / version_filename
+        
+        if not version_path.exists():
+            return {
+                "success": False,
+                "message": f"Version {version_filename} not found for {tab_name}",
+                "code": None
+            }
+        
+        with open(version_path, "r") as f:
+            code = f.read()
+            
+        return {
+            "success": True,
+            "message": f"Retrieved version {version_filename} for {tab_name}",
+            "code": code
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to get version",
+            "error": str(e),
+            "code": None
+        }
 
 if __name__ == "__main__":
     import uvicorn
