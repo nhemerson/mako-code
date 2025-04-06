@@ -1,7 +1,7 @@
 <script lang="ts">
     import DataframeView from './DataframeView.svelte';
     import { onMount } from 'svelte';
-    import { getApiUrl, fetchApi } from "$lib/utils/api";
+    import {fetchApi } from "$lib/utils/api";
 
     export let datasetPath: string;
     export let datasetName: string;

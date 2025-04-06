@@ -2,6 +2,7 @@ export const codeTemplates = {
     polars: `# https://docs.pola.rs/api/python/stable/reference/
 
 import polars as pl
+#from functions.mako import save
 
 data = {"a": [1, 2], "b": [3, 4]}
 df = pl.DataFrame(data)
