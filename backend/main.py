@@ -110,7 +110,10 @@ ALLOWED_EXTERNAL_MODULES = {
     'polars',
     'functions',
     'pyarrow',
-    'bokeh'
+    'bokeh',
+    'sklearn',
+    'matplotlib',
+    'seaborn'
 }
 
 def is_safe_code(code: str) -> tuple[bool, str]:
@@ -181,6 +184,21 @@ def create_safe_globals():
 
     import bokeh
     safe_globals['bokeh'] = bokeh
+
+    # Add scikit-learn
+    import sklearn
+    safe_globals['sklearn'] = sklearn
+
+    # Add matplotlib
+    import matplotlib
+    import matplotlib.pyplot as plt
+    safe_globals['matplotlib'] = matplotlib
+    safe_globals['plt'] = plt
+
+    # Add seaborn
+    import seaborn as sns
+    safe_globals['seaborn'] = sns
+    safe_globals['sns'] = sns
 
     # Add datetime module properly
     from datetime import datetime, timedelta, date, time, timezone
