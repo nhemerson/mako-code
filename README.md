@@ -75,6 +75,24 @@ docker-compose build
 docker-compose up
 ```
 
+2. Use Make (Alternative Method)
+```bash
+# Setup both frontend and backend dependencies
+make setup
+
+# Run the application (both frontend and backend)
+make run
+
+# To run frontend and backend separately:
+make frontend  # Runs frontend server
+make backend   # Runs backend server
+
+# To clean up dependencies and build artifacts
+make clean
+```
+
+The backend API documentation will be available at http://localhost:8001/api/docs
+
 ## Contributing
 
 We welcome contributions! Please feel free to submit a Pull Request. I will make sure any accepted PRs are added to the next release and you are credited in the changelog.
