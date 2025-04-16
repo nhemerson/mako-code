@@ -51,7 +51,7 @@ frontend:
 backend:
 	@echo "Starting backend server..."
 	@echo "API documentation will be available at http://localhost:8001/api/docs"
-	cd backend && . $(VENV_PATH)/bin/activate && uvicorn main:app --reload --host 0.0.0.0 --port 8001
+	cd backend && . $(VENV_PATH)/bin/activate && ENVIRONMENT=development uvicorn main:app --reload --host 0.0.0.0 --port 8001
 
 # Build frontend for production
 build:

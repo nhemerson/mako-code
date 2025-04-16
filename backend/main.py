@@ -114,7 +114,8 @@ ALLOWED_EXTERNAL_MODULES = {
     'bokeh',
     'sklearn',
     'matplotlib',
-    'seaborn'
+    'seaborn',
+    'google.cloud'
 }
 
 def is_safe_code(code: str) -> tuple[bool, str]:
@@ -180,11 +181,21 @@ def create_safe_globals():
     safe_globals['pl'] = pl
     safe_globals['polars'] = pl
 
+    # Add os module
+    import os
+    safe_globals['os'] = os
+
     import pyarrow
     safe_globals['pyarrow'] = pyarrow
 
     import bokeh
     safe_globals['bokeh'] = bokeh
+
+    # Add Google Cloud modules
+    from google.cloud import storage, bigquery, bigquery_storage
+    safe_globals['storage'] = storage
+    safe_globals['bigquery'] = bigquery
+    safe_globals['bigquery_storage'] = bigquery_storage
 
     # Add scikit-learn
     import sklearn
