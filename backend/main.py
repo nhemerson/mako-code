@@ -796,6 +796,7 @@ class SaveFunctionRequest(BaseModel):
     description: str = Field(default="", description="Description of what the function does")
     tags: List[str] = Field(default_factory=list, description="List of tags for categorizing the function")
     language: str = Field(default="python", description="Programming language of the function")
+    isUpdate: bool = Field(default=False, description="Whether this is an update to an existing function")
 
 class SaveFunctionResponse(BaseModel):
     """Response model for save function endpoint"""
@@ -817,7 +818,8 @@ async def save_user_function(data: SaveFunctionRequest):
             code=data.code,
             description=data.description,
             tags=data.tags,
-            language=data.language
+            language=data.language,
+            is_update=data.isUpdate
         )
         
         if success:
@@ -1102,6 +1104,19 @@ async def get_version(tab_name: str, version_filename: str):
             "error": str(e),
             "code": None
         }
+
+class DeleteFunctionResponse(BaseModel):
+    """Response model for delete function endpoint"""
+    success: bool
+    error: Optional[str] = None
+
+@app.delete("/api/delete-function/{name}", response_model=DeleteFunctionResponse)
+async def delete_user_function(name: str):
+    try:
+        success, error = utils.delete_function(name)
+        return DeleteFunctionResponse(success=success, error=error)
+    except Exception as e:
+        return DeleteFunctionResponse(success=False, error=str(e))
 
 if __name__ == "__main__":
     import uvicorn

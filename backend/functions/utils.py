@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 from functions.mako import save
 from functions.ingestion import DATASET_DIR
 from functions.sql_parser import parse_sql_code, validate_datasets
+from datetime import datetime
 
 def execute_sql(code: str) -> pl.DataFrame:
     """
@@ -110,7 +111,8 @@ def save_function(
     code: str,
     description: str,
     tags: List[str],
-    language: str
+    language: str,
+    is_update: bool = False
 ) -> tuple[bool, str]:
     """
     Saves a function to user_defined.py with metadata as docstring.
@@ -122,8 +124,11 @@ def save_function(
         return False, name_error
 
     # Check if function already exists
-    if check_function_exists(name):
+    exists = check_function_exists(name)
+    if exists and not is_update:
         return False, f"A function named '{name}' already exists"
+    elif not exists and is_update:
+        return False, f"Function '{name}' not found"
 
     # Validate code if it's Python
     if language == 'python':
@@ -134,23 +139,57 @@ def save_function(
     try:
         # Use absolute paths to avoid directory issues
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        
-        # Create user_defined.py if it doesn't exist
         user_defined_path = os.path.join(base_dir, 'functions', 'user_defined.py')
         print(f"Checking for user_defined.py at: {user_defined_path}")
         
-        if not os.path.exists(user_defined_path):
-            print(f"Creating new user_defined.py file")
+        # Create or clean up the file if needed
+        if not os.path.exists(user_defined_path) or os.path.getsize(user_defined_path) == 0:
             with open(user_defined_path, 'w') as f:
                 f.write("# User-defined functions\n\n")
         
-        # Format the metadata as a docstring
-        metadata_docstring = f'"""\n{description}\n\nTags: {", ".join(tags)}\nLanguage: {language}\n"""\n'
+        # Read the current content
+        with open(user_defined_path, 'r') as f:
+            content = f.read()
         
-        # Append the new function with metadata
-        print(f"Appending function to {user_defined_path}")
-        with open(user_defined_path, 'a') as f:
-            f.write(f'\n\n{metadata_docstring}{code}\n')
+        # Parse the file to find all valid functions
+        tree = ast.parse(content)
+        functions = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                # Skip the function we're updating
+                if node.name == name and is_update:
+                    continue
+                
+                # Get the function's docstring and code
+                docstring = ast.get_docstring(node) or ""
+                start_line = node.lineno
+                end_line = node.end_lineno
+                
+                # Get the function code
+                func_lines = content.splitlines()[start_line - 1:end_line]
+                func_code = '\n'.join(func_lines)
+                
+                # Add to our list of functions to keep
+                functions.append((docstring, func_code))
+        
+        # Format the metadata as a docstring for the new/updated function
+        metadata_docstring = f'"""\n{description}\n\nTags: {", ".join(tags)}\nLanguage: {language}\n"""'
+        
+        # Create new file content
+        new_content = "# User-defined functions\n\n"
+        
+        # Add all existing functions (except the one being updated)
+        for func_docstring, func_code in functions:
+            if func_docstring:
+                new_content += f'\n{func_docstring}\n'
+            new_content += f'\n{func_code}\n'
+        
+        # Add the new/updated function
+        new_content += f'\n{metadata_docstring}\n{code}\n'
+        
+        # Write the file
+        with open(user_defined_path, 'w') as f:
+            f.write(new_content)
         
         print(f"Successfully wrote function code")
         return True, ""
@@ -191,24 +230,95 @@ def list_saved_functions() -> List[Dict[str, Any]]:
                 tags = []
                 language = "python"
                 
+                # Split docstring into lines and parse metadata
                 lines = docstring.split('\n')
                 if lines:
-                    description = lines[0]
+                    # First non-empty line is the description
+                    description = next((line for line in lines if line.strip()), "")
                 
                 for line in lines:
-                    if line.startswith("Tags:"):
-                        tags = [tag.strip() for tag in line[5:].split(',')]
-                    elif line.startswith("Language:"):
+                    if line.strip().startswith("Tags:"):
+                        tags = [tag.strip() for tag in line[5:].split(',') if tag.strip()]
+                    elif line.strip().startswith("Language:"):
                         language = line[9:].strip()
+                
+                # Get the function code
+                start_line = node.lineno
+                end_line = node.end_lineno
+                code_lines = content.splitlines()[start_line - 1:end_line]
+                function_code = '\n'.join(code_lines)
                 
                 functions.append({
                     'name': name,
                     'description': description,
                     'tags': tags,
-                    'language': language
+                    'language': language,
+                    'code': function_code,
+                    'created_at': datetime.now().isoformat(),  # We don't track actual creation time
+                    'updated_at': datetime.now().isoformat()
                 })
         
         return functions
     except Exception as e:
         print(f"Error listing saved functions: {str(e)}")
         return []
+
+def delete_function(name: str) -> tuple[bool, str]:
+    """
+    Deletes a function from user_defined.py
+    Returns (success, error_message)
+    """
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        user_defined_path = os.path.join(base_dir, 'functions', 'user_defined.py')
+        
+        if not os.path.exists(user_defined_path):
+            return False, "Functions file not found"
+            
+        with open(user_defined_path, 'r') as f:
+            content = f.read()
+            
+        # Parse the file to find all functions
+        tree = ast.parse(content)
+        functions = []
+        current_function = None
+        
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                # Get the function's docstring and code
+                docstring = ast.get_docstring(node) or ""
+                start_line = node.lineno
+                end_line = node.end_lineno
+                
+                # Get the function code
+                func_lines = content.splitlines()[start_line - 1:end_line]
+                func_code = '\n'.join(func_lines)
+                
+                if node.name != name:  # Keep all functions except the one being deleted
+                    functions.append((docstring, func_code))
+                else:
+                    current_function = node.name
+        
+        if not current_function:
+            return False, f"Function '{name}' not found"
+            
+        # Create new file content
+        new_content = "# User-defined functions\n\n"
+        
+        # Add all remaining functions
+        for func_docstring, func_code in functions:
+            if func_docstring:
+                new_content += f'"""\n{func_docstring}\n"""\n'
+            new_content += f'{func_code}\n\n'
+        
+        # Write the file
+        with open(user_defined_path, 'w') as f:
+            f.write(new_content.rstrip() + '\n')
+        
+        return True, ""
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error deleting function: {str(e)}\n{error_details}")
+        return False, f"Failed to delete function: {str(e)}"

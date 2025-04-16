@@ -6,79 +6,134 @@
     export let show = false;
     export let onClose: () => void;
     export let initialCode = '';
+    export let initialFunction: {
+        name: string;
+        code: string;
+        description: string;
+        tags: string[];
+        language: string;
+    } | null = null;
 
     let functionName = '';
     let description = '';
     let tags = '';
     let language = 'python';
-    let code = initialCode;
+    let code = '';
     let errorMessage = '';
     let editorContainer: HTMLElement;
     let editor: Monaco.editor.IStandaloneCodeEditor;
     let monaco: typeof Monaco;
     let editorInitialized = false;
+    let isEditing = false;
 
     const languages = [
         { id: 'python', name: 'Python' },
-        { id: 'sql', name: 'SQL' },
-        { id: 'javascript', name: 'JavaScript' }
+        // { id: 'sql', name: 'SQL' },
+        // { id: 'javascript', name: 'JavaScript' }
     ];
+
+    function resetForm() {
+        functionName = '';
+        description = '';
+        tags = '';
+        language = 'python';
+        code = '';
+        errorMessage = '';
+        isEditing = false;
+        if (editorInitialized && editor) {
+            editor.setValue('');
+        }
+    }
+
+    function initializeEditor() {
+        if (!editorContainer || !monaco || editorInitialized) return;
+
+        editor = monaco.editor.create(editorContainer, {
+            value: '',
+            language: language.toLowerCase(),
+            theme: 'vs-dark',
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            lineNumbers: 'on',
+            glyphMargin: false,
+            folding: true,
+            lineDecorationsWidth: 0,
+            lineNumbersMinChars: 3,
+            automaticLayout: true
+        });
+
+        editor.onDidChangeModelContent(() => {
+            code = editor.getValue();
+        });
+
+        editorInitialized = true;
+
+        if (initialFunction) {
+            editor.setValue(initialFunction.code);
+        } else if (show && initialCode) {
+            editor.setValue(initialCode);
+        }
+    }
+
+    function cleanupEditor() {
+        if (editor) {
+            editor.dispose();
+            editorInitialized = false;
+        }
+    }
 
     // Initialize Monaco when the component is mounted
     onMount(async () => {
-        // Import Monaco
         monaco = await import('monaco-editor');
+        if (show) {
+            initializeEditor();
+        }
     });
 
-    // Initialize or update the editor when the modal is shown
-    $: if (show && monaco && editorContainer && !editorInitialized) {
-        // Wait for the DOM to be ready
-        setTimeout(() => {
-            try {
-                // Create the editor
-                editor = monaco.editor.create(editorContainer, {
-                    value: initialCode || code,
-                    language: 'python',
-                    theme: 'vs-dark',
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    lineNumbers: 'on',
-                    automaticLayout: true,
-                    fontSize: 14,
-                    tabSize: 4,
-                    renderLineHighlight: 'all',
-                    scrollbar: {
-                        useShadows: false,
-                        verticalScrollbarSize: 10,
-                        horizontalScrollbarSize: 10
-                    }
-                });
-
-                // Update code when editor content changes
-                editor.onDidChangeModelContent(() => {
-                    code = editor.getValue();
-                });
-
-                editorInitialized = true;
-                
-                // Focus the editor
-                editor.focus();
-            } catch (error) {
-                console.error("Error initializing Monaco editor:", error);
-            }
-        }, 100);
+    // Handle show/hide of modal
+    $: if (show && monaco && editorContainer) {
+        if (!initialFunction) {
+            resetForm();
+            initialCode = '';
+        }
+        initializeEditor();
     }
 
-    // Handle cleanup when modal is closed
-    $: if (!show && editorInitialized && editor) {
-        editor.dispose();
-        editorInitialized = false;
+    $: if (!show) {
+        cleanupEditor();
+    }
+
+    // Update form when initialFunction changes
+    $: if (initialFunction) {
+        functionName = initialFunction.name;
+        description = initialFunction.description;
+        tags = initialFunction.tags.join(', ');
+        language = initialFunction.language;
+        isEditing = true;
+        code = initialFunction.code;
+        
+        if (editorInitialized && editor) {
+            editor.setValue(initialFunction.code);
+        }
+    }
+
+    // Update editor when initialCode changes
+    $: if (initialCode && editorInitialized && editor && !initialFunction && show) {
+        editor.setValue(initialCode);
+        code = initialCode;
     }
 
     async function handleSave() {
         try {
             // Get the latest code from the editor if available
             const currentCode = editorInitialized && editor ? editor.getValue() : code;
+
+            if (isEditing) {
+                // Show confirmation dialog for updates
+                if (!confirm(`Are you sure you want to update the function "${functionName}"?`)) {
+                    return;
+                }
+            }
             
             const response = await fetchApi('api/save-function', {
                 method: 'POST',
@@ -90,7 +145,8 @@
                     code: currentCode,
                     description,
                     tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-                    language
+                    language,
+                    isUpdate: isEditing
                 })
             });
 
@@ -115,9 +171,7 @@
 
     // Cleanup on component destroy
     onDestroy(() => {
-        if (editor) {
-            editor.dispose();
-        }
+        cleanupEditor();
     });
 </script>
 
@@ -125,7 +179,7 @@
     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-[#1a1a1a] rounded-lg w-[750px] max-h-[80vh] overflow-y-auto">
             <div class="p-6">
-                <h2 class="text-xl text-white mb-4">Save Function</h2>
+                <h2 class="text-xl text-white mb-4">{isEditing ? 'Edit' : 'Save'} Function</h2>
                 
                 {#if errorMessage}
                     <div class="text-red-400 mb-4 p-2 bg-red-900 bg-opacity-20 rounded">
@@ -141,6 +195,7 @@
                             bind:value={functionName}
                             class="w-full bg-[#252525] text-white p-2 rounded border border-[#333333] focus:border-blue-500 focus:outline-none"
                             placeholder="my_function"
+                            disabled={isEditing}
                         />
                     </div>
 
@@ -162,7 +217,7 @@
                         ></textarea>
                     </div>
 
-                    <!-- <div>
+                    <div>
                         <label class="block text-gray-400 mb-1">Tags (comma-separated)</label>
                         <input
                             type="text"
@@ -170,9 +225,9 @@
                             class="w-full bg-[#252525] text-white p-2 rounded border border-[#333333] focus:border-blue-500 focus:outline-none"
                             placeholder="data, analysis, helper"
                         />
-                    </div> -->
+                    </div>
 
-                    <!-- <div>
+                    <div>
                         <label class="block text-gray-400 mb-1">Language</label>
                         <select
                             bind:value={language}
@@ -182,7 +237,7 @@
                                 <option value={lang.id}>{lang.name}</option>
                             {/each}
                         </select>
-                    </div> -->
+                    </div>
                 </div>
 
                 <div class="flex justify-end space-x-3 mt-6">
@@ -196,7 +251,7 @@
                         class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                         on:click={handleSave}
                     >
-                        Save Function
+                        {isEditing ? 'Update' : 'Save'} Function
                     </button>
                 </div>
             </div>
