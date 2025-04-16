@@ -9,6 +9,7 @@ pyarrow==19.0.1
 python-dotenv==1.0.0
 google-cloud-storage==3.0.0
 google-cloud-bigquery-storage==2.26.0
+google-cloud-bigquery==3.31.0
 urllib3>=1.26.19
 bokeh==3.6.3
 ruff==0.1.14  # Required for Mako editor linting
