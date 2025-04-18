@@ -151,11 +151,20 @@ def save_function(
         with open(user_defined_path, 'r') as f:
             content = f.read()
         
-        # Parse the file to find all valid functions
+        # Parse the file to find all valid functions and imports
         tree = ast.parse(content)
         functions = []
+        imports = []
+        
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                # Get the import's code
+                start_line = node.lineno
+                end_line = node.end_lineno
+                import_lines = content.splitlines()[start_line - 1:end_line]
+                import_code = '\n'.join(import_lines)
+                imports.append(import_code)
+            elif isinstance(node, ast.FunctionDef):
                 # Skip the function we're updating
                 if node.name == name and is_update:
                     continue
@@ -172,11 +181,39 @@ def save_function(
                 # Add to our list of functions to keep
                 functions.append((docstring, func_code))
         
+        # Parse the new code to find any new imports
+        new_tree = ast.parse(code)
+        new_imports = []
+        for node in ast.walk(new_tree):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                # Get the import's code
+                start_line = node.lineno
+                end_line = node.end_lineno
+                import_lines = code.splitlines()[start_line - 1:end_line]
+                import_code = '\n'.join(import_lines)
+                new_imports.append(import_code)
+        
+        # Remove imports from the function code to avoid duplication
+        code_lines = code.splitlines()
+        filtered_code_lines = []
+        i = 0
+        while i < len(code_lines):
+            line = code_lines[i]
+            if not line.strip().startswith(('import ', 'from ')):
+                filtered_code_lines.append(line)
+            i += 1
+        code = '\n'.join(filtered_code_lines)
+        
         # Format the metadata as a docstring for the new/updated function
         metadata_docstring = f'"""\n{description}\n\nTags: {", ".join(tags)}\nLanguage: {language}\n"""'
         
         # Create new file content
         new_content = "# User-defined functions\n\n"
+        
+        # Add all unique imports at the top
+        all_imports = list(set(imports + new_imports))
+        if all_imports:
+            new_content += '\n'.join(all_imports) + '\n\n'
         
         # Add all existing functions (except the one being updated)
         for func_docstring, func_code in functions:
