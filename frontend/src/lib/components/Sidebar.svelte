@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
-    import { Menu, ChevronLeft, Code, Settings, BookOpen } from 'lucide-svelte';
+    import { Menu, ChevronLeft, Code, Settings, BookOpen, FileText } from 'lucide-svelte';
     import { hasUnsavedChanges } from '$lib/stores/navigation';
     import ConfirmNavigationModal from './ConfirmNavigationModal.svelte';
     import SettingsModal from './SettingsModal.svelte';
@@ -37,6 +37,12 @@
 
     function openDocs() {
         window.open('https://docs.pola.rs/api/python/stable/reference/', '_blank');
+    }
+    
+    // Dispatch custom event for opening the docs tab
+    function openInternalDocs() {
+        const event = new CustomEvent('openDocs');
+        window.dispatchEvent(event);
     }
 </script>
 
@@ -100,6 +106,17 @@
                     <BookOpen size={24} class="shrink-0" />
                     <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75 text-sm" class:opacity-0={isCollapsed}>
                         Polars Docs
+                    </span>
+                </button>
+            </li>
+            <li>
+                <button 
+                    on:click={openInternalDocs}
+                    class="w-full flex items-center gap-4 rounded-lg hover:bg-[#222222] transition-colors {isCollapsed ? 'px-2' : 'px-4'} py-3"
+                >
+                    <FileText size={24} class="shrink-0" />
+                    <span class="whitespace-nowrap overflow-hidden transition-opacity duration-75 text-sm" class:opacity-0={isCollapsed}>
+                        Docs
                     </span>
                 </button>
             </li>

@@ -1,7 +1,7 @@
 
-<img width="207" alt="Screenshot 2025-02-16 at 9 11 12 PM" src="https://github.com/user-attachments/assets/d84dc7f2-95d7-47d0-8c04-bb8701cf396a" />
+# Mako Code
 
-Analytics Tools for Small Data
+Your personal Polars sketch pad and analytics workflow
 
 ## What is Mako Code?
 
@@ -75,7 +75,7 @@ docker-compose build
 docker-compose up
 ```
 
-2. Use Make (Alternative Method)
+2. Use Make (Alternative Method for Mac only)
 ```bash
 # Setup both frontend and backend dependencies
 make setup
