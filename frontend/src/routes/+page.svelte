@@ -32,7 +32,7 @@
 		name: string;
 		content: string;
 		model?: Monaco.editor.ITextModel;
-		type: 'code' | 'dataset' | 'context' | 'home';
+		type: 'code' | 'dataset' | 'context' | 'home' | 'docs';
 		datasetPath: string;
 		datasetName?: string;
 	}
@@ -594,7 +594,7 @@ print(df)`;
 		const newFile: EditorFile = {
 			name: lastTab.name,
 			content: lastTab.content,
-			type: lastTab.type as 'code' | 'dataset' | 'context' | 'home',
+			type: lastTab.type as 'code' | 'dataset' | 'context' | 'home' | 'docs',
 			datasetPath: lastTab.datasetPath || '',  // Ensure it's always a string
 			datasetName: lastTab.datasetName
 		};
@@ -806,6 +806,42 @@ print(df)`;
 		} catch (error: any) {
 			console.error('Error exporting file:', error);
 			consoleEditor.setValue(`🔴 Error exporting file: ${error.message}`);
+		}
+	}
+
+	// Function to open the docs tab
+	function openDocsTab() {
+		// Check if Docs tab already exists
+		const docsTabIndex = files.findIndex(file => file.type === 'docs');
+		
+		if (docsTabIndex !== -1) {
+			// If Docs tab exists, switch to it
+			activeFileIndex = docsTabIndex;
+		} else {
+			// If Docs tab doesn't exist, create it
+			const docsTab: EditorFile = {
+				name: 'Documentation',
+				content: '',
+				type: 'docs' as const,
+				datasetPath: ''
+			};
+			
+			// Add the Docs tab after Home tab or as first tab if no Home
+			const homeTabIndex = files.findIndex(file => file.type === 'home');
+			if (homeTabIndex !== -1) {
+				files = [
+					...files.slice(0, homeTabIndex + 1),
+					docsTab,
+					...files.slice(homeTabIndex + 1)
+				];
+				activeFileIndex = homeTabIndex + 1;
+			} else {
+				files = [docsTab, ...files];
+				activeFileIndex = 0;
+			}
+			
+			// Save state after adding new file
+			saveEditorState();
 		}
 	}
 
@@ -1033,6 +1069,9 @@ print(df)`;
 		// Add global keyboard shortcut listener
 		window.addEventListener('keydown', handleKeyboardShortcut);
 
+		// Add event listener for opening docs tab
+		window.addEventListener('openDocs', openDocsTab);
+
 		// Add keyboard shortcut to Monaco editor
 		editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
 			isSidebarCollapsed = !isSidebarCollapsed;
@@ -1056,6 +1095,9 @@ print(df)`;
 
 		// Remove global keyboard shortcut listener
 		window.removeEventListener('keydown', handleKeyboardShortcut);
+		
+		// Remove docs tab event listener
+		window.removeEventListener('openDocs', openDocsTab);
 	});
 
 	function startResize(e: MouseEvent) {
@@ -1315,6 +1357,194 @@ print(df)`;
 						</div>
 					{/if}
 					
+					{#if files[activeFileIndex].type === 'docs'}
+						<div class="docs-container p-8 h-full overflow-auto bg-[#1a1a1a] text-gray-300 font-mono">
+							<h1 class="text-2xl font-bold mb-6 text-white">Mako Code Documentation</h1>
+							
+							<!-- Table of Contents -->
+							<div class="mb-8 p-4 bg-[#222222] rounded-lg">
+								<h2 class="text-lg font-bold mb-4 text-white">Table of Contents</h2>
+								<ul class="space-y-2">
+									<li><a href="#api-endpoints" class="text-blue-400 hover:underline">FastAPI Endpoints</a></li>
+									<li><a href="#save-function" class="text-blue-400 hover:underline">Using the Save Function</a></li>
+									<li><a href="#user-functions" class="text-blue-400 hover:underline">User-Defined Functions</a></li>
+								</ul>
+							</div>
+							
+							<!-- API Endpoints Section -->
+							<section id="api-endpoints" class="mb-8">
+								<h2 class="text-xl font-bold mb-4 text-white">FastAPI Endpoints</h2>
+								<p class="mb-4">
+									Mako Code provides several backend API endpoints for interacting with data, executing code, and managing your environment. 
+									Below are the key endpoints and their functionalities:
+								</p>
+								
+								<div class="space-y-6">
+									<div class="p-4 bg-[#222222] rounded-lg">
+										<h3 class="text-lg font-bold mb-2 text-white">/execute</h3>
+										<p class="mb-2">Executes Python code submitted from the editor.</p>
+										<ul class="list-disc pl-6 mb-2 space-y-1">
+											<li><strong>Method:</strong> POST</li>
+											<li><strong>Body:</strong> JSON with "code" field containing the Python code to execute</li>
+											<li><strong>Returns:</strong> Execution output, stdout, stderr, and execution success status</li>
+										</ul>
+									</div>
+									
+									<div class="p-4 bg-[#222222] rounded-lg">
+										<h3 class="text-lg font-bold mb-2 text-white">/api/list-datasets</h3>
+										<p class="mb-2">Retrieves a list of available datasets in the local storage.</p>
+										<ul class="list-disc pl-6 mb-2 space-y-1">
+											<li><strong>Method:</strong> GET</li>
+											<li><strong>Returns:</strong> JSON list of dataset names and paths</li>
+										</ul>
+									</div>
+									
+									<div class="p-4 bg-[#222222] rounded-lg">
+										<h3 class="text-lg font-bold mb-2 text-white">/api/delete-dataset</h3>
+										<p class="mb-2">Deletes a dataset from local storage.</p>
+										<ul class="list-disc pl-6 mb-2 space-y-1">
+											<li><strong>Method:</strong> POST</li>
+											<li><strong>Body:</strong> JSON with "path" field for the dataset to delete</li>
+											<li><strong>Returns:</strong> Success status</li>
+										</ul>
+									</div>
+									
+									<div class="p-4 bg-[#222222] rounded-lg">
+										<h3 class="text-lg font-bold mb-2 text-white">/api/dataset/&#123;dataset_path&#125;</h3>
+										<p class="mb-2">Retrieves dataset content for viewing and analysis.</p>
+										<ul class="list-disc pl-6 mb-2 space-y-1">
+											<li><strong>Method:</strong> GET</li>
+											<li><strong>Path Parameter:</strong> dataset_path - Path to the dataset</li>
+											<li><strong>Returns:</strong> JSON with dataset schema, preview rows, and statistics</li>
+										</ul>
+									</div>
+									
+									<div class="p-4 bg-[#222222] rounded-lg">
+										<h3 class="text-lg font-bold mb-2 text-white">/lint</h3>
+										<p class="mb-2">Performs code linting using Ruff to check for errors and style issues.</p>
+										<ul class="list-disc pl-6 mb-2 space-y-1">
+											<li><strong>Method:</strong> POST</li>
+											<li><strong>Body:</strong> JSON with code and cursor position</li>
+											<li><strong>Returns:</strong> List of lint errors and warnings</li>
+										</ul>
+									</div>
+									
+									<div class="p-4 bg-[#222222] rounded-lg">
+										<h3 class="text-lg font-bold mb-2 text-white">/api/save-dataset-context</h3>
+										<p class="mb-2">Saves documentation context for a dataset.</p>
+										<ul class="list-disc pl-6 mb-2 space-y-1">
+											<li><strong>Method:</strong> POST</li>
+											<li><strong>Body:</strong> JSON with dataset_name and content</li>
+											<li><strong>Returns:</strong> Success status</li>
+										</ul>
+									</div>
+									
+									<div class="p-4 bg-[#222222] rounded-lg">
+										<h3 class="text-lg font-bold mb-2 text-white">/api/save-function</h3>
+										<p class="mb-2">Saves a user-defined function for reuse.</p>
+										<ul class="list-disc pl-6 mb-2 space-y-1">
+											<li><strong>Method:</strong> POST</li>
+											<li><strong>Body:</strong> JSON with function code and metadata</li>
+											<li><strong>Returns:</strong> Success status and function ID</li>
+										</ul>
+									</div>
+								</div>
+							</section>
+							
+							<!-- Save Function Section -->
+							<section id="save-function" class="mb-8">
+								<h2 class="text-xl font-bold mb-4 text-white">Using the Save Function</h2>
+								<p class="mb-4">
+									The <code class="bg-[#333] px-2 py-0.5 rounded">save()</code> function in <code class="bg-[#333] px-2 py-0.5 rounded">functions.mako</code> allows you to persistently store 
+									Polars DataFrames or LazyFrames as parquet files in the local storage directory.
+								</p>
+								
+								<div class="p-4 bg-[#222222] rounded-lg mb-4">
+									<h3 class="text-lg font-bold mb-2 text-white">Function Signature</h3>
+									<p class="mb-2">
+										<code class="bg-[#333] px-2 py-0.5 rounded">save(df: Union[pl.DataFrame, pl.LazyFrame], filename: str) -> Union[pl.DataFrame, pl.LazyFrame]</code>
+									</p>
+									
+									<h4 class="text-md font-bold mt-4 mb-2 text-white">Parameters</h4>
+									<ul class="list-disc pl-6 mb-2 space-y-1">
+										<li><strong>df:</strong> The DataFrame or LazyFrame to save</li>
+										<li><strong>filename:</strong> Name for the saved file (without extension)</li>
+									</ul>
+									
+									<h4 class="text-md font-bold mt-4 mb-2 text-white">Returns</h4>
+									<p class="mb-2">The original DataFrame or LazyFrame for method chaining</p>
+								</div>
+								
+								<div class="p-4 bg-[#222222] rounded-lg">
+									<h3 class="text-lg font-bold mb-2 text-white">Key Features</h3>
+									<ul class="list-disc pl-6 mb-4 space-y-1">
+										<li>Automatically handles both DataFrames and LazyFrames</li>
+										<li>Creates necessary directories if they don't exist</li>
+										<li>Saves files in the parquet format for efficient storage</li>
+										<li>Supports method chaining by returning the original dataframe</li>
+										<li>Displays informative messages about the save operation</li>
+									</ul>
+									
+									<h3 class="text-lg font-bold mb-2 mt-4 text-white">Common Usage Patterns</h3>
+									<p class="mb-2">
+										The save function is typically used at the end of a data processing pipeline to preserve the results:
+									</p>
+									<ul class="list-disc pl-6 space-y-1">
+										<li>Save after filtering, aggregating, or transforming data</li>
+										<li>Save intermediate results in multi-step workflows</li>
+										<li>Save results of SQL queries by using it with SQL decorator output</li>
+									</ul>
+								</div>
+							</section>
+							
+							<!-- User-Defined Functions Section -->
+							<section id="user-functions" class="mb-8">
+								<h2 class="text-xl font-bold mb-4 text-white">User-Defined Functions</h2>
+								<p class="mb-4">
+									Mako Code allows you to save your own custom functions for reuse across different analysis sessions.
+									This feature helps you build a personal library of utility functions tailored to your specific needs.
+								</p>
+								
+								<div class="p-4 bg-[#222222] rounded-lg mb-4">
+									<h3 class="text-lg font-bold mb-2 text-white">Creating User Functions</h3>
+									<ol class="list-decimal pl-6 mb-4 space-y-1">
+										<li>Write your function in a code tab with proper Python function definition</li>
+										<li>Select the function code (or the entire file if it contains only one function)</li>
+										<li>Press <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + F</span> to open the Save Function dialog</li>
+										<li>Enter a name, description, and optional categories for your function</li>
+										<li>Click "Save Function" to store it in your personal library</li>
+									</ol>
+									
+									<h4 class="text-md font-bold mt-4 mb-2 text-white">Function Metadata</h4>
+									<ul class="list-disc pl-6 mb-2 space-y-1">
+										<li><strong>Name:</strong> Unique identifier for your function</li>
+										<li><strong>Description:</strong> Brief explanation of what the function does</li>
+										<li><strong>Categories:</strong> Tags to organize and filter functions</li>
+									</ul>
+								</div>
+								
+								<div class="p-4 bg-[#222222] rounded-lg">
+									<h3 class="text-lg font-bold mb-2 text-white">Using Saved Functions</h3>
+									<ol class="list-decimal pl-6 mb-4 space-y-1">
+										<li>Click on the "Functions" button in the left sidebar to open the Functions modal</li>
+										<li>Browse or search for your saved function</li>
+										<li>Click on a function to view its details</li>
+										<li>Use the "Insert" button to add the function to your current code</li>
+										<li>Alternatively, click "New Tab" to create a new file with the function</li>
+									</ol>
+									
+									<h3 class="text-lg font-bold mb-2 mt-4 text-white">Function Management</h3>
+									<ul class="list-disc pl-6 space-y-1">
+										<li>Functions are stored persistently and available across sessions</li>
+										<li>You can delete functions you no longer need</li>
+										<li>Functions can be updated by saving with the same name</li>
+										<li>Functions can be exported and shared with other Mako Code users</li>
+									</ul>
+								</div>
+							</section>
+						</div>
+					{/if}
+					
 					<!-- Dataset view only renders when needed -->
 					{#if files[activeFileIndex].type === 'dataset' && files[activeFileIndex].datasetPath}
 						<EnhancedDatasetView 
@@ -1500,5 +1730,55 @@ print(df)`;
 		display: inline-block;
 		margin: 0 0.25rem;
 		font-size: 0.8rem;
+	}
+	
+	/* Docs tab styles */
+	.docs-container {
+		font-family: 'Courier New', monospace;
+		line-height: 1.6;
+		font-size: 0.9rem;
+	}
+	
+	.docs-container h1 {
+		font-family: 'Courier New', monospace;
+		font-weight: bold;
+		font-size: 1.5rem;
+	}
+	
+	.docs-container h2 {
+		font-family: 'Courier New', monospace;
+		font-weight: bold;
+		font-size: 1.2rem;
+		scroll-margin-top: 2rem;
+	}
+	
+	.docs-container h3 {
+		font-family: 'Courier New', monospace;
+		font-weight: bold;
+		font-size: 1rem;
+	}
+	
+	.docs-container ul,
+	.docs-container ol {
+		margin-left: 1.5rem;
+	}
+	
+	.docs-container p {
+		margin-bottom: 1rem;
+	}
+	
+	.docs-container .bg-\[\#333\] {
+		display: inline-block;
+		margin: 0 0.25rem;
+		font-size: 0.8rem;
+	}
+	
+	.docs-container section {
+		padding-top: 1rem;
+		border-top: 1px solid #333333;
+	}
+	
+	.docs-container code {
+		font-family: 'Courier New', monospace;
 	}
 </style>
