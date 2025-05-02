@@ -1288,7 +1288,7 @@ print(df)`;
 							<h1 class="text-2xl font-bold mb-6 text-white">What is Mako Code?</h1>
 							
 							<p class="mb-4">
-								Mako Code is an open source Independent Analytics Environment (IAE) that is built for data people who love to code. It is a workflow designed for fast ad hoc analysis with features to let you productize your work. So you can get to answers quickly while building a foundation for future data products.							</p>
+								Mako Code is your own personal Polars sketchpad. It is an open source Independent Analytics Environment (IAE) that is built for data people who love to code. It is a workflow designed for fast ad hoc analysis with features to let you productize your work. So you can get to answers quickly while building a foundation for future data products.							</p>
 							
 							<p class="mb-6">
 								Mako Code is not a vibe coding tool, and doesn't come with an LLM. But it does come with an opinion.
@@ -1306,6 +1306,27 @@ print(df)`;
 							<p class="mb-4">
 								First things first. You can try importing local data using the shortcut <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + I</span>
 							</p>
+
+							<p class="mb-4">
+								Once you have data imported, you can analyze it in the right side data management bar. Here's how:
+							</p>
+
+							<ol class="list-decimal pl-6 mb-8 space-y-2">
+								<li>Open the data management sidebar using <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + D</span></li>
+								<li>Find your dataset in the list</li>
+								<li>Click on your dataset name to open a data view tab in the editor</li>
+								<li>This will open a new tab with a detailed view of your data including:
+									<ul class="list-disc pl-6 mt-2 space-y-1">
+										<li>Column names and types</li>
+										<!-- <li>Basic statistics</li> -->
+										<li>Sample data preview</li>
+										<li>A context window to add notes and documentation</li>
+										<!-- <li>Memory usage information</li> -->
+									</ul>
+								</li>
+								<li>Now click on the elipses menu next to the dataset in the right side menu and select "Analyze" </li>
+								<li>This will open a new tab with pre created polars code allowing you start analyzing your data immediately</li>
+							</ol>
 							
 							<h2 class="text-xl font-bold mt-8 mb-4 text-white">Interface Overview</h2>
 							

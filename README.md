@@ -93,6 +93,37 @@ make clean
 
 The backend API documentation will be available at http://localhost:8001/api/docs
 
+
+## Getting Started
+
+Once you have Mako running, here's how to start analyzing data:
+
+1. Import data using `⌘/Ctrl + Shift + I`
+2. Open the data management sidebar with `⌘/Ctrl + D`
+3. Find your dataset in the list
+4. Click the dataset name to view details including:
+   - Column names and types
+   - Sample data preview
+   - Documentation notes
+5. Click the menu (⋯) next to the dataset and select "Analyze"
+6. This opens a new tab with pre-populated Polars code to start your analysis
+
+The interface provides:
+- Left sidebar: Saved functions, Polars API docs link, Mako docs and keyboard shortcuts
+- Right sidebar: Data management (toggle with `⌘/Ctrl + D`)
+- Editor tabs: Code, visualization and documentation views
+
+Key shortcuts:
+- `⌘/Ctrl + Enter`: Run current file
+- `⌘/Ctrl + Shift + P`: New Polars file
+- `⌘/Ctrl + Shift + L`: New SQL file
+- `⌘/Ctrl + Shift + B`: New Bokeh visualization
+- `⌘/Ctrl + S`: Save Context File
+- `⌘/Ctrl + E`: Export your current tab script
+
+
+
+
 ## Contributing
 
 We welcome contributions! Please feel free to submit a Pull Request. I will make sure any accepted PRs are added to the next release and you are credited in the changelog.
