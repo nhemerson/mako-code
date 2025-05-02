@@ -1307,6 +1307,8 @@ print(df)`;
 								First things first. You can try importing local data using the shortcut <span class="bg-[#333] px-2 py-1 rounded">⌘/Ctrl + Shift + I</span>
 							</p>
 
+							<p class="mb-4">If you need a dataset to look at, try this Airbnb dataset from Kaggle: <a href="https://www.kaggle.com/datasets/dgomonov/new-york-city-airbnb-open-data" target="_blank" class="text-blue-400 hover:underline">New York City Airbnb Open Data</a></p>
+
 							<p class="mb-4">
 								Once you have data imported, you can analyze it in the right side data management bar. Here's how:
 							</p>
