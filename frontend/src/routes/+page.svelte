@@ -1326,7 +1326,7 @@ print(df)`;
 										<!-- <li>Memory usage information</li> -->
 									</ul>
 								</li>
-								<li>Now click on the elipses menu next to the dataset in the right side menu and select "Analyze" </li>
+								<li>Now hover over the dataset in the right side menu and click on the elipses menu then select "Analyze" </li>
 								<li>This will open a new tab with pre created polars code allowing you start analyzing your data immediately</li>
 							</ol>
 							
@@ -1388,91 +1388,10 @@ print(df)`;
 							<div class="mb-8 p-4 bg-[#222222] rounded-lg">
 								<h2 class="text-lg font-bold mb-4 text-white">Table of Contents</h2>
 								<ul class="space-y-2">
-									<li><a href="#api-endpoints" class="text-blue-400 hover:underline">FastAPI Endpoints</a></li>
 									<li><a href="#save-function" class="text-blue-400 hover:underline">Using the Save Function</a></li>
 									<li><a href="#user-functions" class="text-blue-400 hover:underline">User-Defined Functions</a></li>
 								</ul>
 							</div>
-							
-							<!-- API Endpoints Section -->
-							<section id="api-endpoints" class="mb-8">
-								<h2 class="text-xl font-bold mb-4 text-white">FastAPI Endpoints</h2>
-								<p class="mb-4">
-									Mako Code provides several backend API endpoints for interacting with data, executing code, and managing your environment. 
-									Below are the key endpoints and their functionalities:
-								</p>
-								
-								<div class="space-y-6">
-									<div class="p-4 bg-[#222222] rounded-lg">
-										<h3 class="text-lg font-bold mb-2 text-white">/execute</h3>
-										<p class="mb-2">Executes Python code submitted from the editor.</p>
-										<ul class="list-disc pl-6 mb-2 space-y-1">
-											<li><strong>Method:</strong> POST</li>
-											<li><strong>Body:</strong> JSON with "code" field containing the Python code to execute</li>
-											<li><strong>Returns:</strong> Execution output, stdout, stderr, and execution success status</li>
-										</ul>
-									</div>
-									
-									<div class="p-4 bg-[#222222] rounded-lg">
-										<h3 class="text-lg font-bold mb-2 text-white">/api/list-datasets</h3>
-										<p class="mb-2">Retrieves a list of available datasets in the local storage.</p>
-										<ul class="list-disc pl-6 mb-2 space-y-1">
-											<li><strong>Method:</strong> GET</li>
-											<li><strong>Returns:</strong> JSON list of dataset names and paths</li>
-										</ul>
-									</div>
-									
-									<div class="p-4 bg-[#222222] rounded-lg">
-										<h3 class="text-lg font-bold mb-2 text-white">/api/delete-dataset</h3>
-										<p class="mb-2">Deletes a dataset from local storage.</p>
-										<ul class="list-disc pl-6 mb-2 space-y-1">
-											<li><strong>Method:</strong> POST</li>
-											<li><strong>Body:</strong> JSON with "path" field for the dataset to delete</li>
-											<li><strong>Returns:</strong> Success status</li>
-										</ul>
-									</div>
-									
-									<div class="p-4 bg-[#222222] rounded-lg">
-										<h3 class="text-lg font-bold mb-2 text-white">/api/dataset/&#123;dataset_path&#125;</h3>
-										<p class="mb-2">Retrieves dataset content for viewing and analysis.</p>
-										<ul class="list-disc pl-6 mb-2 space-y-1">
-											<li><strong>Method:</strong> GET</li>
-											<li><strong>Path Parameter:</strong> dataset_path - Path to the dataset</li>
-											<li><strong>Returns:</strong> JSON with dataset schema, preview rows, and statistics</li>
-										</ul>
-									</div>
-									
-									<div class="p-4 bg-[#222222] rounded-lg">
-										<h3 class="text-lg font-bold mb-2 text-white">/lint</h3>
-										<p class="mb-2">Performs code linting using Ruff to check for errors and style issues.</p>
-										<ul class="list-disc pl-6 mb-2 space-y-1">
-											<li><strong>Method:</strong> POST</li>
-											<li><strong>Body:</strong> JSON with code and cursor position</li>
-											<li><strong>Returns:</strong> List of lint errors and warnings</li>
-										</ul>
-									</div>
-									
-									<div class="p-4 bg-[#222222] rounded-lg">
-										<h3 class="text-lg font-bold mb-2 text-white">/api/save-dataset-context</h3>
-										<p class="mb-2">Saves documentation context for a dataset.</p>
-										<ul class="list-disc pl-6 mb-2 space-y-1">
-											<li><strong>Method:</strong> POST</li>
-											<li><strong>Body:</strong> JSON with dataset_name and content</li>
-											<li><strong>Returns:</strong> Success status</li>
-										</ul>
-									</div>
-									
-									<div class="p-4 bg-[#222222] rounded-lg">
-										<h3 class="text-lg font-bold mb-2 text-white">/api/save-function</h3>
-										<p class="mb-2">Saves a user-defined function for reuse.</p>
-										<ul class="list-disc pl-6 mb-2 space-y-1">
-											<li><strong>Method:</strong> POST</li>
-											<li><strong>Body:</strong> JSON with function code and metadata</li>
-											<li><strong>Returns:</strong> Success status and function ID</li>
-										</ul>
-									</div>
-								</div>
-							</section>
 							
 							<!-- Save Function Section -->
 							<section id="save-function" class="mb-8">
@@ -1486,6 +1405,14 @@ print(df)`;
 									<h3 class="text-lg font-bold mb-2 text-white">Function Signature</h3>
 									<p class="mb-2">
 										<code class="bg-[#333] px-2 py-0.5 rounded">save(df: Union[pl.DataFrame, pl.LazyFrame], filename: str) -> Union[pl.DataFrame, pl.LazyFrame]</code>
+									</p>
+
+									<h3 class="text-lg font-bold mb-2 text-white">Usage</h3>
+									<p class="mb-2">
+										<code class="bg-[#333] px-2 py-0.5 rounded">from functions.mako import save<br>
+										import polars as pl<br><br>
+										df = pl.read_parquet("./data/local_storage/my_data.parquet")<br>
+										save(df, "my_dataframe")</code>
 									</p>
 									
 									<h4 class="text-md font-bold mt-4 mb-2 text-white">Parameters</h4>
@@ -1545,23 +1472,30 @@ print(df)`;
 										<li><strong>Categories:</strong> Tags to organize and filter functions</li>
 									</ul>
 								</div>
-								
-								<div class="p-4 bg-[#222222] rounded-lg">
-									<h3 class="text-lg font-bold mb-2 text-white">Using Saved Functions</h3>
+								<div class="p-4 bg-[#222222] rounded-lg mb-4">
+									<h3 class="text-lg font-bold mb-2 text-white">Viewing Saved Functions</h3>
 									<ol class="list-decimal pl-6 mb-4 space-y-1">
 										<li>Click on the "Functions" button in the left sidebar to open the Functions modal</li>
 										<li>Browse or search for your saved function</li>
 										<li>Click on a function to view its details</li>
-										<li>Use the "Insert" button to add the function to your current code</li>
-										<li>Alternatively, click "New Tab" to create a new file with the function</li>
+										<li>Double click name ot copy and paste into your code</li>
 									</ol>
+								</div>
+								
+								<div class="p-4 bg-[#222222] rounded-lg">
+									<h3 class="text-lg font-bold mb-2 text-white">Using Saved Functions</h3>
+									<p class="mb-2">
+										<code class="bg-[#333] px-2 py-0.5 rounded">from functions.user_defined import <i>function_name</i>
+										function_name()
+										</code>
+									</p>
 									
 									<h3 class="text-lg font-bold mb-2 mt-4 text-white">Function Management</h3>
 									<ul class="list-disc pl-6 space-y-1">
 										<li>Functions are stored persistently and available across sessions</li>
 										<li>You can delete functions you no longer need</li>
 										<li>Functions can be updated by saving with the same name</li>
-										<li>Functions can be exported and shared with other Mako Code users</li>
+										<!--<li>Functions can be exported and shared with other Mako Code users</li>-->
 									</ul>
 								</div>
 							</section>
