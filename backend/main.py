@@ -1105,6 +1105,72 @@ async def get_version(tab_name: str, version_filename: str):
             "code": None
         }
 
+@app.post("/api/cleanup-versions/{tab_name}")
+async def cleanup_versions(tab_name: str):
+    """Clean up versions older than 24 hours for a specific tab"""
+    try:
+        # Sanitize tab name
+        sanitized_name = "".join(c if c.isalnum() or c in "._- " else "_" for c in tab_name).strip()
+        
+        versions_dir = Path("data/versions")
+        tab_dir = versions_dir / sanitized_name
+        metadata_path = tab_dir / "metadata.json"
+        
+        if not metadata_path.exists():
+            return {
+                "success": True,
+                "message": f"No versions found for {tab_name}",
+                "cleaned_versions": 0
+            }
+        
+        # Read current metadata
+        with open(metadata_path, "r") as f:
+            metadata = json.load(f)
+        
+        versions = metadata.get("versions", [])
+        current_time = datetime.now()
+        cleaned_versions = 0
+        
+        # Filter versions and remove old ones
+        new_versions = []
+        for version in versions:
+            try:
+                # Convert timestamp to datetime
+                version_time = datetime.strptime(version["timestamp"], "%Y-%m-%dT%H-%M-%S")
+                hours_diff = (current_time - version_time).total_seconds() / 3600
+                
+                if hours_diff <= 24:
+                    new_versions.append(version)
+                else:
+                    # Delete the version file
+                    version_path = tab_dir / version["filename"]
+                    if version_path.exists():
+                        version_path.unlink()
+                    cleaned_versions += 1
+            except Exception as e:
+                print(f"Error processing version {version['filename']}: {str(e)}")
+                # Keep the version if there's an error processing it
+                new_versions.append(version)
+        
+        # Update metadata with filtered versions
+        metadata["versions"] = new_versions
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f, indent=2)
+        
+        return {
+            "success": True,
+            "message": f"Cleaned up {cleaned_versions} old versions for {tab_name}",
+            "cleaned_versions": cleaned_versions
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": "Failed to clean up versions",
+            "error": str(e),
+            "cleaned_versions": 0
+        }
+
 class DeleteFunctionResponse(BaseModel):
     """Response model for delete function endpoint"""
     success: bool

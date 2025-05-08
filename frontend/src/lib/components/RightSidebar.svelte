@@ -14,7 +14,7 @@
 	export let activeFile: { name: string; type: string } = { name: '', type: '' };
 
 	let isExploreExpanded = true;  // State for the explore section
-	let isVersionsExpanded = true;  // State for the versions section
+	let isVersionsExpanded = false;  // State for the versions section
 	let showDropdownForDataset: string | null = null;  // Track which dataset's dropdown is open
 
 	// const dispatch = createEventDispatcher();
