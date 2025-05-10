@@ -13,7 +13,7 @@ Mako Code is not a vibe coding tool, and doesn't come with an LLM. But it does c
 - Python built in functions
 - Polars only for dataframe manipulation
 - Direct link to Polars docs and AI chat
-- Bokeh for data viz
+- Bokeh, Seaborn and Matplotlib for data viz
 - Parquets as the local file type
 - Apache Arrow for data serialization
 - Pydantic data models
